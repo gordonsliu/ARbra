@@ -1,0 +1,63 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity" 
+    android:orientation="vertical"
+    android:background="#FF000000">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:text="OVERVIEW"
+        android:textStyle="bold" />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="1. PREPARE FOR SAMPLE COLLECTION" />
+    <TextView
+        style="@style/overviewFont"
+        android:text="2. COLLECT MICROBE SAMPLES" />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="3. ANALYZE MICROBE SAMPLES" />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="4.	Add microbe number next to module and site number on incubation bag." />
+    <TextView
+        style="@style/overviewFont"
+        android:text="5. CLEAN SAMPLE SITE AND ANALYZER" />
+    <TextView
+        style="@style/overviewFont"
+        android:text="6. Place used cleaning wipes into airlock." />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="7. Stow incubation bag in COL1_B2. " />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="8. Repeat steps 2 – 7 for each sample site." />
+    <TextView
+        style="@style/overviewFont"
+        android:text="9. Stow reusable tools in their original locations." />
+    <TextView
+        style="@style/overviewFont"
+        android:text="10" />
+    <TextView
+        style="@style/overviewFont"
+        android:text="11" />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="12" />
+
+    <TextView
+        style="@style/overviewFont"
+        android:text="13" />    
+
+</LinearLayout>

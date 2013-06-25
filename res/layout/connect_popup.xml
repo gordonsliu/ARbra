@@ -1,0 +1,79 @@
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/popup_element"
+    android:layout_width="450dp"
+    android:layout_height="210dp"
+    android:background="#444444"
+    android:orientation="horizontal"
+    android:paddingLeft="10dp"
+    android:paddingTop="10dp"
+    android:paddingRight="10dp"
+    android:paddingBottom="10dp">
+ 	<TableRow> 
+	    <TextView
+	        android:layout_marginLeft="5dp"
+	        android:layout_marginBottom="5dp"		        
+	        android:id="@+id/Status"
+	        android:layout_width="120dp"
+	        android:layout_height="wrap_content"
+	        android:text="@string/Status"
+	        android:textAppearance="?android:attr/textAppearanceMedium"/>	
+	    
+	
+	    <TextView
+	        android:id="@+id/ConnectStatus"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:text="@string/Connected"
+	        android:textColor="#4bdf71"
+	        android:textAppearance="?android:attr/textAppearanceMedium" />
+	</TableRow>        
+
+	<TableRow>
+
+		<TextView
+		    android:id="@+id/IP_Address"
+		    android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:layout_marginBottom="5dp"
+		    android:layout_marginLeft="5dp"
+		    android:text="@string/IP_Address"
+		    android:textAppearance="?android:attr/textAppearanceMedium" />
+	
+	    <EditText
+	        android:id="@+id/IP_String"
+	        android:layout_width="150dp"
+	        android:layout_height="40dp" 
+	        android:inputType="text"
+	        android:textSize="14dp"
+	    />
+	</TableRow>
+		<TextView
+	        android:id="@+id/Disconnect_Msg"
+	        android:layout_width="wrap_content"
+	        android:layout_height="50dp"
+	        android:layout_gravity="center_horizontal"
+	        android:layout_marginLeft="15dp"
+	        android:layout_marginRight="15dp"
+	        android:layout_marginTop="10dp"
+	        android:layout_marginBottom="0dp"
+	        android:layout_weight="0.23"
+	        android:text="@string/Connect_Msg2"
+	        android:textAppearance="?android:attr/textAppearanceMedium" />
+	<TableRow android:layout_marginTop="10dp"> <TextView />
+	    <Button
+	        android:id="@+id/Connect"
+	        android:layout_width="100dp"
+	        android:layout_height="50dp"
+	        android:text="@string/Connect" />
+	    
+	    <Button
+	        android:id="@+id/Back"
+	        android:layout_width="150dp"
+	        android:layout_height="50dp"
+	        android:text="@string/Back" />
+	</TableRow> 
+	
+	
+
+	
+</TableLayout >

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Control Panel -->
+	<string name="app_name">bra</string>
+	
+    <!-- Connection PopUp -->
+    <string name="Connection_Settings">Connection Settings</string>
+    <string name="Status">Status:</string>
+    <string name="Connect">Connect</string>
+    <string name="Connected">Connected</string>
+    <string name="NotConnected">Not Connected</string>
+    <string name="Back">Back</string>
+    <string name="Connect_Msg1">Please enter your Saset system\'s local IP address.</string>
+    <string name="Connect_Msg2">Connection failed.\nCheck your Internet connection or IP address.</string>
+    <string name="Connect_Msg3">Your Android device has been disconnected from your Saset system.</string>
+    <string name="Connect_Msg4">You are successfully connected.</string>
+    <string name="IP_Address">IP Address:</string>
+    
+    <string name="menu_settings">menu</string>
+    
+</resources>
