@@ -40,8 +40,6 @@ public class MainApp extends Application{
 	            	 connected = true;
 	            }else if (msg.equals("disconnected")) {
 	                 connected = false;
-	            }else if (msg.equals("B_Mode")){
-
 	            }
             }
             

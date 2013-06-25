@@ -22,7 +22,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-// We enter this activity when the top-right connection icon is pressed. This activity can tell ConnectionService to
+// We enter this activity when the connection menu button is pressed. This activity can tell ConnectionService to
 // begin a socket connection and displays connection information.
 public class ConnectionPopUp extends Activity{
 	private String TAG ="ConnectionPopUp";
@@ -202,7 +202,6 @@ public class ConnectionPopUp extends Activity{
         }
     }
 
- // Listens to broadcast messages
     private class DataUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -211,7 +210,7 @@ public class ConnectionPopUp extends Activity{
             	Bundle b = intent.getExtras();
             	String msg = b.getString("msg");
             	if (msg.equals("connected")){
-                // if ConnectionService confirms that the connection to the ultrasound system
+                // if ConnectionService confirms that the connection has been established
 	            	runOnUiThread(new Runnable() {
 	            	      public void run() { 
 	            	    	  Log.v(TAG, "on receive - connected");
@@ -222,7 +221,7 @@ public class ConnectionPopUp extends Activity{
 	            	      }
 	            	    });
 	            }else if (msg.equals("disconnected")) {
-		        // if ConnectionService says the ultrasound system has been disconnected
+		        // if ConnectionService says a disconnect has occurred
 	                 runOnUiThread(new Runnable(){
 	                	  public void run() { 
 	                		   Log.v(TAG, "on receive - disconnected");

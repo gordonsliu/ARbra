@@ -109,7 +109,7 @@ public class ConnectionService extends Service {
 	}
 
     // Opens a socket and attempts to connect to the input ip address
-    	// called by activities (ConnectionPopUp & ControlPanelActivity) when this service is bound
+    	// called by activities (ConnectionPopUp & MainActivity) when this service is bound
     public void connect(String ip_address){
     	run = false;
     	sendBroadcastMsg("disconnected");

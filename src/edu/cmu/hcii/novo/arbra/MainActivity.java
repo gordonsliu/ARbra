@@ -217,7 +217,9 @@ public class MainActivity extends Activity {
     }
     
     
-    
+    /*
+     * Sends test input
+     */
     public void send_1(View view) throws JSONException{
     	JSONObject j = new JSONObject();
     	j.put("type", "command");
@@ -225,6 +227,10 @@ public class MainActivity extends Activity {
  
     	sendMsg(j.toString());
     }
+    
+    /*
+     * Sends test input
+     */
     public void send_2(View view) throws JSONException{
     	JSONObject j = new JSONObject();
     	j.put("type", "command");
