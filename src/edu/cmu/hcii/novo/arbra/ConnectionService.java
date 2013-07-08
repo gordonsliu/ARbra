@@ -1,32 +1,18 @@
 package edu.cmu.hcii.novo.arbra;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Writer;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
-import org.apache.http.util.ByteArrayBuffer;
-
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Color;
 import android.os.Binder;
-import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 public class ConnectionService extends Service {
 	
@@ -65,20 +51,47 @@ public class ConnectionService extends Service {
 		return myBinder;
 	}
 	
-	// these functions can be accessed by activities when the service is bound
+	/**
+	 * These functions can be accessed by activities when the service is bound
+	 * 
+	 */
     public class LocalBinder extends Binder {
-        public ConnectionService getService() {
+        
+    	/**
+         * Getter function for ConnectionService
+         * @return ConnectionService
+         */
+    	public ConnectionService getService() {
             return ConnectionService.this;
         }
+    	
+    	/**
+    	 * Sends a message String to connected device
+    	 * @param msg the String to send to connected device
+    	 */
         public void sendMsg(String msg){
         	ConnectionService.this.sendMsg(msg);
         }
+        
+        /**
+         * Disconnects the socket
+         */
         public void stop(){
         	ConnectionService.this.stop();
         }
+        
+        /**
+         * Creates a socket connection
+         * @param ip_address the IP address of the server
+         */
         public void connect(String ip_address){
         	ConnectionService.this.connect(ip_address);
         }
+        
+        /**
+         * Gets whether the socket is connected.
+         * @return true if the socket is connected; false otherwise
+         */
         public boolean isConnected(){
         	return ConnectionService.this.isConnected();
         }
@@ -108,8 +121,11 @@ public class ConnectionService extends Service {
 		return run;
 	}
 
-    // Opens a socket and attempts to connect to the input ip address
-    	// called by activities (ConnectionPopUp & MainActivity) when this service is bound
+    /**
+     * Opens a socket and attempts to connect to the input IP address
+     * Called by activities (ConnectionPopUp & MainActivity) when this service is bound
+     * @param ip_address the IP address of the server socket
+     */	
     public void connect(String ip_address){
     	run = false;
     	sendBroadcastMsg("disconnected");
@@ -128,7 +144,10 @@ public class ConnectionService extends Service {
     	
     }
     
-    // thread sets up socket connection
+    /**
+     * Thread sets up socket connection
+     * 
+     */
     class connectSocket implements Runnable {
         @Override
         public void run() {
@@ -147,7 +166,10 @@ public class ConnectionService extends Service {
         }    
     }
     
-    // sends bytes to output stream
+    /**
+     * Sends a string to output stream
+     * @param msg the string to be sent
+     */
     public void sendMsg(String msg){
     	if (run){ // if system is connected
 		  	try {
@@ -158,13 +180,16 @@ public class ConnectionService extends Service {
 			}
     	}else{
     		// if system is not connected, make connection pop up show up
-    		 Intent dialogIntent = new Intent(getBaseContext(), ConnectionPopUp.class);
+    		 Intent dialogIntent = new Intent(this, ConnectionPopUp.class);
 			 dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			 getApplication().startActivity(dialogIntent);
     	}
     }    
     
-    // thread receives messages
+    /**
+     * Thread receives messages
+     * 
+     */
     class receiveSocket implements Runnable {
 		private long beginTime;
 
@@ -208,7 +233,10 @@ public class ConnectionService extends Service {
     }
     
   
-    // Forces the socket to disconnect
+    /**
+     * Forces the socket to disconnect
+     * Also opens ConnectionPopUp
+     */
     public void stop(){
     	run = false;
     	sendBroadcastMsg("disconnected");
@@ -220,13 +248,17 @@ public class ConnectionService extends Service {
 	    } catch (IOException e) {
 			e.printStackTrace();
 	    }
-	    Intent dialogIntent = new Intent(getBaseContext(), ConnectionPopUp.class);
+	    Intent dialogIntent = new Intent(this, ConnectionPopUp.class);
 	    dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 	    getApplication().startActivity(dialogIntent);
 	    //startActivity(new Intent(this, ConnectionPopUp.class));
     }    
     
-	// sends a broadcast message to be read by other classes
+    
+	/**
+	 * Sends a broadcast message to be read by other classes
+	 * @param msg the string to be sent
+	 */
 	private void sendBroadcastMsg(String msg){
         Intent intent = new Intent("connection");
         intent.putExtra("msg", msg);

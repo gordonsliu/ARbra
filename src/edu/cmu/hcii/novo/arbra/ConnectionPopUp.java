@@ -1,6 +1,5 @@
 package edu.cmu.hcii.novo.arbra;
 
-import edu.cmu.hcii.novo.arbra.R;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -12,7 +11,6 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;

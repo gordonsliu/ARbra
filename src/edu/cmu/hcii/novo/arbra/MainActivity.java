@@ -1,12 +1,11 @@
 package edu.cmu.hcii.novo.arbra;
 
 
+import java.util.ArrayList;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import edu.cmu.hcii.novo.arbra.R;
-import android.os.Bundle;
-import android.os.IBinder;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -17,11 +16,21 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.graphics.Color;
+import android.media.MediaRecorder;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.speech.RecognitionListener;
+import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.TextView;
 
 public class MainActivity extends Activity {
 
@@ -45,34 +54,222 @@ public class MainActivity extends Activity {
 	private ConnectionService mBoundService;
 	private boolean mIsBound;
 	
+	
+	/** Speech recognition **/
+	private SpeechRecognizer speechRecognizer;
+	private TextView textView;
+	
+	/* For handling occasions where speechRecognizer doesn't not call onBeginningOfSpeech */
+	private long silenceStart;
+	private boolean talked = false;
+	
+	/* For handling confirmation string */
+	private boolean confirm = false;
+	private String CONFIRMATION_STRING = "hello";
+	
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.control_panel);
         Log.v(TAG, "onCreate");
         
         // to view variables stored in MainApp
         MainApp = (MainApp) MainActivity.this.getApplication();   
 
-        // to begin ConnectionService (connection to ultrasound system)
+        // to begin ConnectionService (connection to Moverio)
        	if (!isMyServiceRunning())
        		startService(new Intent(MainActivity.this,ConnectionService.class));
        	doBindService();
 
 		
-       	// stores data on android tablet (in this case, we are storing the IP address of ultrasound system for future use)
+       	// stores data on android tablet (in this case, we are storing the IP address for future use)
        	prefs = getSharedPreferences(PREFS_NAME, 0);
         ip_address = prefs.getString("machine_ip","none");
 
-       	
+        textView = (TextView) findViewById(R.id.textView);
+        
+        initSpeechRecognizer();
+        initTalkButton();
+        MediaRecorder mr = new MediaRecorder();
+        
+	}
+	
+	/**
+	 * Initializes speech recognizer
+	 */
+    private void initSpeechRecognizer(){
+    	speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+        speechRecognizer.setRecognitionListener(new RecognitionListener(){
+
+			@Override
+			public void onBeginningOfSpeech() {
+				Log.v(TAG, "onBeginningOfSpeech");				
+			}
+
+			@Override
+			public void onBufferReceived(byte[] arg0) {
+				Log.v(TAG, "onBufferReceived");				
+			}
+
+			@Override
+			public void onEndOfSpeech() {
+				Log.v(TAG, "onEndOfSpeech");				
+			}
+
+			@Override
+			public void onError(int error) {
+            	confirm = false;
+
+				String errorString ="";
+				if (error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT){
+					errorString = "ERROR_NETWORK_TIMEOUT";
+				}else if (error == SpeechRecognizer.ERROR_AUDIO){
+					errorString = "ERROR_AUDIO";
+				}else if (error == SpeechRecognizer.ERROR_CLIENT){
+					errorString = "ERROR_CLIENT";
+				}else if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS){
+					errorString = "ERROR_INSUFFICIENT_PERMISSIONS";
+				}else if (error == SpeechRecognizer.ERROR_NETWORK){
+					errorString = "ERROR_NETWORK";
+				}else if (error == SpeechRecognizer.ERROR_NO_MATCH){
+					errorString = "ERROR_NO_MATCH";
+				}else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
+					errorString = "ERROR_RECOGNIZER_BUSY";
+				}else if (error == SpeechRecognizer.ERROR_SERVER){
+					errorString = "ERROR_SERVER";
+				}else if (error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
+					errorString = "ERROR_SPEECH_TIMEOUT";
+				}
+                textView.setText("error:" + errorString);
+                Log.v(TAG, "onError:" + errorString);	
+                
+            	startListening();
+
+                
+               // cancelListener();
+                /*final Handler handler = new Handler();
+                final Runnable runnable = new Runnable() {   
+                    public void run() {
+                    	startListening();
+                    	//initSpeechRecognizer();
+                    	handler.postDelayed(this, 5000);
+                    	
+                    } 
+                };
+                handler.post(runnable);
+                */
+                
+			}
+
+			@Override
+			public void onEvent(int arg0, Bundle arg1) {
+				Log.v(TAG, "onEvent");				
+			}
+
+			@Override
+			public void onPartialResults(Bundle arg0) {
+				Log.v(TAG, "onPartialResults");				
+			}
+
+			@Override
+			public void onReadyForSpeech(Bundle arg0) {
+				Log.v(TAG, "onReadyForSpeech");				
+			}
+
+			/**
+			 * This function is called when receiving a result
+			 */
+			@Override
+			public void onResults(Bundle results) {
+				talked = false;
+				Log.v(TAG, "onResults");		
+                String str = new String();
+                Log.d(TAG, "onResults " + results);
+                                
+                ArrayList<String> data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                float[] scores =
+                        results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
+                for (int i = 0; i < data.size(); i++)
+                {
+                          Log.d(TAG, "result " + data.get(i) + scores[i]);
+                          str += data.get(i);
+                }
+                textView.setText(str);
+                
+                if (confirm){
+                	confirm = false;
+	                try {
+						sendCommand(str);
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+                }else if (str.equals(CONFIRMATION_STRING)){
+                	confirm = true;
+                }
+                startListening();
+			}
+
+			@Override
+			public void onRmsChanged(float noise) {
+				Log.v(TAG, "onRmsChanged: " + noise);	
+				
+				if (noise > 8){
+					talked = true;
+				}else if (talked && noise < 3){
+					if (silenceStart == 0)
+						silenceStart = System.currentTimeMillis();
+					else if (System.currentTimeMillis() - silenceStart > 2000){
+						silenceStart = 0;
+						talked = false;
+						speechRecognizer.stopListening();
+					}
+				}else{
+					silenceStart = 0;
+				}
+			}
+        	
+        });
+    }
+
+    /**
+     * Tells the speech recognizer to start listening
+     */
+    private void startListening(){
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);        
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
+        //intent.putExtra(RecognizerIntent.EXTRA_CONFIDENCE_SCORES, true);
+
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5); 
+        speechRecognizer.startListening(intent);
+             Log.i("111111","11111111");
+    }
+    
+    /**
+     * Tells the speech recognizer to reset
+     */
+    private void cancelListener(){
+    	speechRecognizer.cancel();
+    }
+	
+	private void initTalkButton(){
+		Button talkButton = (Button) findViewById(R.id.talkButton);
+		talkButton.setOnClickListener(new OnClickListener(){
+			@Override
+			public void onClick(View arg0) {
+				startListening();
+			}
+		});
 	}
 	
     // The activity is about to become visible.
     @Override
     protected void onStart() {
         super.onStart();
-        Log.v(TAG, "onStart");   
-    }
+        Log.v(TAG, "onStart");  
+    } 
 	
     // The activity has become visible (it is now "resumed").     
     @Override
@@ -127,7 +324,9 @@ public class MainActivity extends Activity {
     }
 
 
-	// Adds items to the menu bar (currently used for managing the receive socket)
+	/**
+	 * Adds items to the menu bar (currently used for managing the receive socket)
+	 */
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 	    Log.v(TAG, "menu create");
@@ -135,13 +334,19 @@ public class MainActivity extends Activity {
 		return true;
 	}
 	
-	// Called when a menu item is selected (starts the socket)
+	/**
+	 * Called when a menu item is selected.
+	 * Menu currently only has one option, which starts the socket.
+	 */
 	public boolean onOptionsItemSelected (MenuItem item){
         startActivity(new Intent(this, ConnectionPopUp.class));	
+        
 		return false;
 	}
 	
-	// Called any time the bottom menu pops up
+	/**
+	 * Called any time the bottom menu pops up
+	 */
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu){
 	   	 Log.v(TAG, "menu prepare");
@@ -150,7 +355,9 @@ public class MainActivity extends Activity {
    	 return true;
 	}
 	
-    // declares service and connects
+    /**
+     *  Declares service and connects
+     */
     private ServiceConnection mConnection = new ServiceConnection() {
     	public void onServiceConnected(ComponentName className, IBinder service) {
         	 Log.v("TAG", "set mBoundService");
@@ -164,9 +371,11 @@ public class MainActivity extends Activity {
         }
     };
 
-    // Binds the service to the activity 
-    // Allows access service functions/variables available to binded activities.
-    	// See LocalBinder class in ConnectionService
+    /**
+     * 	Binds the service to the activity 
+   	 *	Allows access service functions/variables available to binded activities.
+     *	(See LocalBinder class in ConnectionService for accessible functions)
+     */
     private void doBindService() {
     	Log.v(TAG, "bind service");
         bindService(new Intent(MainActivity.this, ConnectionService.class), mConnection, Context.BIND_AUTO_CREATE);
@@ -174,7 +383,9 @@ public class MainActivity extends Activity {
     }
 
 
-    // unbinds the service and activity
+    /**
+     *  Unbinds the service and activity
+     */
     private void doUnbindService() {
         if (mIsBound) {
         	Log.v(TAG, "unbind service");
@@ -184,7 +395,10 @@ public class MainActivity extends Activity {
         }
     }
     
-    // returns whether or not the service is running
+    /**
+     * Returns whether or not the service is running
+     * @return true if connection service is running, false otherwise
+     */
     private boolean isMyServiceRunning() {
         ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         for (RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
@@ -195,7 +409,9 @@ public class MainActivity extends Activity {
         return false;
     }
 	
-	// Listens to broadcast messages
+	/**
+	 * Listens to broadcast messages
+	 */
     private class DataUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -204,12 +420,12 @@ public class MainActivity extends Activity {
             	Bundle b = intent.getExtras();
             	String msg = b.getString("msg");
             	if (msg.equals("connected")){
-                // if ConnectionService confirms that the connection to the ultrasound system, the connection icon on the top right turns green
+                // if ConnectionService confirms that the connection
 	            	runOnUiThread(new Runnable() {
 	            	      public void run() { 
 	            	    	  Log.v(TAG, "on receive - connected");
 	            	      }
-	            	    });
+	            	});
 	            }
             	
           }
@@ -243,7 +459,7 @@ public class MainActivity extends Activity {
     /**
      * Call this function to send a message to the Moverio
      * @param msg
-     * @return
+     * @return true if message was sent; false otherwise
      */
     private boolean sendMsg(String msg){
     	long curActionTime = System.currentTimeMillis();
@@ -254,6 +470,30 @@ public class MainActivity extends Activity {
     		return false;
     	}   			
     	mBoundService.sendMsg(msg);	
+    	Log.v("action time filter", "sent");
+    	lastActionTime = curActionTime;
+    	return true;
+    }
+
+
+    /**
+     * Call this function to send a command to the Moverio
+     * @param msg
+     * @return true if message was sent; false otherwise
+     * @throws JSONException 
+     */
+    private boolean sendCommand(String msg) throws JSONException{
+    	long curActionTime = System.currentTimeMillis();
+    	JSONObject j = new JSONObject();
+    	j.put("type", "command");
+    	j.put("content", msg);
+    	
+    	// to prevent "spamming" of control panel commands    	
+    	if (curActionTime - lastActionTime < MIN_ACTION_TIME){
+    		Log.v("action time filter", "skip");
+    		return false;
+    	}   			
+    	mBoundService.sendMsg(j.toString());	
     	Log.v("action time filter", "sent");
     	lastActionTime = curActionTime;
     	return true;

@@ -22,10 +22,12 @@ public final class R {
         public static final int IP_String=0x7f070004;
         public static final int Status=0x7f070001;
         public static final int cp1=0x7f070008;
-        public static final int menu_settings=0x7f07000b;
+        public static final int menu_settings=0x7f07000d;
         public static final int popup_element=0x7f070000;
         public static final int send_1=0x7f070009;
         public static final int send_2=0x7f07000a;
+        public static final int talkButton=0x7f07000c;
+        public static final int textView=0x7f07000b;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

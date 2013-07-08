@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<!-- Control Panel -->
-	<string name="app_name">bra</string>
+	<string name="app_name">ARbra</string>
 	
     <!-- Connection PopUp -->
     <string name="Connection_Settings">Connection Settings</string>
