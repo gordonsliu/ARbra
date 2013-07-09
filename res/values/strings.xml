@@ -18,4 +18,10 @@
     
     <string name="menu_settings">menu</string>
     
+    <string-array name="commands">
+	<item>back</item>
+	<item>next</item>
+	<item>menu</item>
+	</string-array>
+    
 </resources>

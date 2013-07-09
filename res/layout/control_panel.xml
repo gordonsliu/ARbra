@@ -1,41 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    
-            android:id="@+id/cp1"
-	            android:layout_width="fill_parent"
-	            android:layout_height="wrap_content">
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:id="@+id/cp1"
+	android:layout_width="fill_parent"
+	android:layout_height="wrap_content">
 
-				<Button
-			        android:id="@+id/send_1"
-			        android:layout_width="150dp"
-			        android:layout_height="wrap_content"
-			        android:text="1" 
-			        android:onClick="send_1"/>
-				
-                
-				<Button
-			        android:id="@+id/send_2"
-			        android:layout_width="150dp"
-			        android:layout_height="wrap_content"
-			        android:text="2" 
-			        android:layout_toRightOf="@id/send_1"
-			        android:onClick="send_2"/>
-				
-				<TextView
-				    android:id="@+id/textView"
-				    android:layout_width="300dp"
-				    android:layout_height="300dp"
-					android:layout_below="@id/send_1"
-				/>
-				
-				
-				<Button
-				    android:id="@+id/talkButton"
-				    android:layout_width="200dp"
-				    android:layout_height="200dp"
-				    android:text="TOK"
-				    android:layout_alignParentBottom="true"
-				/>
-								
-	       </RelativeLayout>
+	<Button
+	     android:id="@+id/trainButton"
+	     android:layout_width="150dp"
+	     android:layout_height="wrap_content"
+	     android:layout_alignParentTop="true"
+	     android:text="Train command"/>
+ 
+	<Button
+        android:id="@+id/send_1"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:text="1" 
+        android:layout_toRightOf="@id/trainButton"
+        android:onClick="send_1"/>
+	
+	<Button
+        android:id="@+id/send_2"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:text="2" 
+        android:layout_toRightOf="@id/send_1"
+        android:onClick="send_2"/>
+	
+	<CheckBox
+	    android:id="@+id/trainingCheckBox"
+	    android:layout_width="50dp"
+	    android:layout_height="50dp"
+	    android:layout_toRightOf="@id/send_2"
+	/>
+	
+	<TextView
+	    android:id="@+id/textView"
+	    android:layout_width="fill_parent"
+	    android:layout_height="150dp"
+		android:layout_below="@id/trainButton"
+	/>
+	
+	<Spinner
+	    android:id="@+id/commands"
+	    android:layout_width="fill_parent"
+	    android:layout_height="80dp" 
+	    android:layout_below="@id/textView"
+	    android:entries="@array/commands"
+    />
+	
+	<ListView
+	    android:id="@+id/words"
+	    android:layout_width="fill_parent"
+	    android:layout_height="300dp"
+		android:layout_below="@id/commands"
+	/>				
+	
+	<Button
+	    android:id="@+id/getTrainedButton"
+	    android:layout_width="150dp"
+	    android:layout_height="50dp"
+	    android:text="Get words"
+	    android:layout_alignParentBottom="true"
+	    android:layout_alignParentRight="true"
+	/>
+
+</RelativeLayout>

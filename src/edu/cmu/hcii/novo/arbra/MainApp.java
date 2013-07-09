@@ -14,7 +14,7 @@ public class MainApp extends Application{
 
 	
 	private DataUpdateReceiver dataUpdateReceiver; // receives broadcast messages from ConnectionService
-	private static String TAG = "ControlPanelApp";
+	private static String TAG = "MainApp";
 	
 	@Override
 	public void onCreate(){

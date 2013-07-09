@@ -1,8 +1,16 @@
 package edu.cmu.hcii.novo.arbra;
 
-
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -16,9 +24,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.Environment;
 import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -29,8 +36,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
+import android.widget.Adapter;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends Activity {
 
@@ -40,7 +52,7 @@ public class MainActivity extends Activity {
 	private MainApp MainApp;
 
 	//IP address data storage
-	public static final String PREFS_NAME = "moverioPrefs";
+	public static final String PREFS_NAME = "ARbraPrefs";
 	SharedPreferences prefs;
 	public String ip_address;
 	
@@ -58,6 +70,7 @@ public class MainActivity extends Activity {
 	/** Speech recognition **/
 	private SpeechRecognizer speechRecognizer;
 	private TextView textView;
+	private ArrayList<String> data; // current results
 	
 	/* For handling occasions where speechRecognizer doesn't not call onBeginningOfSpeech */
 	private long silenceStart;
@@ -66,7 +79,7 @@ public class MainActivity extends Activity {
 	/* For handling confirmation string */
 	private boolean confirm = false;
 	private String CONFIRMATION_STRING = "hello";
-	
+	Spinner commands;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -91,11 +104,12 @@ public class MainActivity extends Activity {
         textView = (TextView) findViewById(R.id.textView);
         
         initSpeechRecognizer();
-        initTalkButton();
-        MediaRecorder mr = new MediaRecorder();
-        
+        initTrainerButtons();
+        commands = (Spinner) findViewById(R.id.commands);        
 	}
 	
+	
+
 	/**
 	 * Initializes speech recognizer
 	 */
@@ -137,6 +151,7 @@ public class MainActivity extends Activity {
 					errorString = "ERROR_NO_MATCH";
 				}else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
 					errorString = "ERROR_RECOGNIZER_BUSY";
+					
 				}else if (error == SpeechRecognizer.ERROR_SERVER){
 					errorString = "ERROR_SERVER";
 				}else if (error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
@@ -188,13 +203,12 @@ public class MainActivity extends Activity {
                 String str = new String();
                 Log.d(TAG, "onResults " + results);
                                 
-                ArrayList<String> data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                float[] scores =
-                        results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
+                data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                float[] scores = results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
                 for (int i = 0; i < data.size(); i++)
                 {
-                          Log.d(TAG, "result " + data.get(i) + scores[i]);
-                          str += data.get(i);
+                          Log.d(TAG, "result " + data.get(i) +" = " + getTrainer(data.get(i)) + scores[i]);
+                          str += data.get(i) +" = " + getTrainer(data.get(i)) + "\n";
                 }
                 textView.setText(str);
                 
@@ -220,7 +234,7 @@ public class MainActivity extends Activity {
 				}else if (talked && noise < 3){
 					if (silenceStart == 0)
 						silenceStart = System.currentTimeMillis();
-					else if (System.currentTimeMillis() - silenceStart > 2000){
+					else if (System.currentTimeMillis() - silenceStart > 500){
 						silenceStart = 0;
 						talked = false;
 						speechRecognizer.stopListening();
@@ -253,16 +267,16 @@ public class MainActivity extends Activity {
     private void cancelListener(){
     	speechRecognizer.cancel();
     }
-	
+	/*
 	private void initTalkButton(){
-		Button talkButton = (Button) findViewById(R.id.talkButton);
-		talkButton.setOnClickListener(new OnClickListener(){
+		//Button talkButton = (Button) findViewById(R.id.talkButton);
+		//talkButton.setOnClickListener(new OnClickListener(){
 			@Override
 			public void onClick(View arg0) {
 				startListening();
 			}
 		});
-	}
+	}*/
 	
     // The activity is about to become visible.
     @Override
@@ -281,6 +295,7 @@ public class MainActivity extends Activity {
         	dataUpdateReceiver = new DataUpdateReceiver();
         IntentFilter intentFilter = new IntentFilter("connection");
         registerReceiver(dataUpdateReceiver, intentFilter);
+        startListening();
     }
     
     @Override
@@ -497,6 +512,167 @@ public class MainActivity extends Activity {
     	Log.v("action time filter", "sent");
     	lastActionTime = curActionTime;
     	return true;
+    }
+    
+    
+    
+    
+    /**
+     * Initializes trainer ui
+     */
+	private void initTrainerButtons(){
+		Button trainButton = (Button) findViewById(R.id.trainButton);
+		trainButton.setOnClickListener(new OnClickListener(){
+			@Override
+			public void onClick(View arg0) {
+				String command = commands.getSelectedItem().toString();
+				for (int i = 0; i<data.size(); i++){
+					writeTrainer(command,data.get(i));
+				}
+			}
+			
+		});
+		
+		
+		Button getTrainedButton = (Button) findViewById(R.id.getTrainedButton);
+		getTrainedButton.setOnClickListener(new OnClickListener(){
+			@Override
+			public void onClick(View arg0){
+				String command = commands.getSelectedItem().toString();
+				readTrainer(command);				
+			}
+		});
+		
+	}
+
+	/**
+	 * 
+	 * @param command
+	 * @param word
+	 */
+    private void writeTrainer(String command, String word){
+    	if (command.equals(word))
+    		return;
+    	
+    	String result = prefs.getString(word, "none");
+    	
+    	if (result.equals("none")){
+    		SharedPreferences.Editor editor = prefs.edit();
+        	editor.putString(word, command);
+        	
+        	
+        	Set<String> commandWords = prefs.getStringSet(command,null);
+        	if (commandWords != null){
+        		commandWords.add(word);
+        		editor.putStringSet(command, commandWords);
+        	}else{
+        		Set<String> commandWordsSet = new HashSet<String>();
+        		commandWordsSet.add(word);
+        		editor.putStringSet(command, commandWordsSet);
+        	}
+        	editor.commit();	
+	    }else{
+	    	Toast.makeText(this, "Duplicate trained command: cmd = " +command+", word ="+word, Toast.LENGTH_LONG).show();
+	    	
+	    }
+    	
+
+    }
+    	
+    /**
+     * 
+     * @param word
+     * @return
+     */
+    private String getTrainer(String word){
+    	Spinner spinner = (Spinner) findViewById(R.id.commands);
+    	Adapter adapter = spinner.getAdapter();
+    	for (int i = 0; i < adapter.getCount(); i++){
+    		if (adapter.getItem(i).equals(word))
+    			return word;
+    	}
+    	
+    	
+    	String result = prefs.getString(word, "none");
+    	if (!result.equals("none")){
+    		return result;
+    	}else{
+	    	Toast.makeText(this, "Word not in database = "+ word, Toast.LENGTH_LONG).show();
+	    	return "";
+    	}
+    }
+    
+    /**
+     * 
+     * @param command
+     */
+    private void readTrainer(String command){
+    	Set<String> result = prefs.getStringSet(command, null);
+		ListView listView = (ListView) findViewById(R.id.words); 
+
+    	if (result == null){
+    		listView.setAdapter(null);
+	    	Toast.makeText(this, "nothing here boss", Toast.LENGTH_LONG).show();
+    	}else{
+    		Iterator<String> iterator = result.iterator();
+		    final ArrayList<String> list = new ArrayList<String>();
+
+    		while (iterator.hasNext()){
+    		    list.add(iterator.next());
+    		    // Log.v(TAG,"command = "+iterator.next());
+    		}
+    		final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list);
+    		listView.setAdapter(adapter);
+
+    	}
+    	exportTrainer();
+    }
+    
+    private void exportTrainer(){
+    	try {
+			String filePath = Environment.getExternalStorageDirectory().toString() + "/trainer.txt";
+			File myFile = new File(filePath);
+			myFile.createNewFile();
+			
+			FileWriter fw = new FileWriter(myFile.getAbsoluteFile());
+			BufferedWriter bw = new BufferedWriter(fw);
+			
+			//myOutWriter.write("");
+			JSONObject json = new JSONObject();
+
+			
+	    	for (int i = 0; i < commands.getCount(); i++){
+	    		String command = commands.getItemAtPosition(i).toString();
+	    		
+	        	Set<String> result = prefs.getStringSet(command, null);
+	        	if (result != null){
+	        		
+	        		JSONArray commandSet = new JSONArray();
+	        		Iterator<String> iterator = result.iterator();
+	        		while (iterator.hasNext()){
+	        			String word = iterator.next();
+	        		    Log.v(TAG,command +" , " +word);
+	        			commandSet.put(word);
+	        		}
+	        		json.put(command, commandSet);
+	        	}
+
+	    			
+	    	}
+		    Log.v(TAG,json.toString());
+
+		    bw.write(json.toString());
+		    bw.close();
+		    fw.close();	
+		    
+	    	Toast.makeText(this, "Done writing SD ", Toast.LENGTH_LONG).show();
+
+    	} catch (Exception e) {
+			Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+		}
+    	
+    	
+		
     }
 
 }
