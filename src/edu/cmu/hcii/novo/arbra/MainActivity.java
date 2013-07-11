@@ -2,9 +2,7 @@ package edu.cmu.hcii.novo.arbra;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -65,7 +63,8 @@ public class MainActivity extends Activity {
 	/** ConnectionService **/
 	private ConnectionService mBoundService;
 	private boolean mIsBound;
-	
+	private static String MSG_TYPE_COMMAND = "command";
+	private static String MSG_TYPE_AUDIO_LEVEL = "audio";
 	
 	/** Speech recognition **/
 	private SpeechRecognizer speechRecognizer;
@@ -80,6 +79,13 @@ public class MainActivity extends Activity {
 	private boolean confirm = false;
 	private String CONFIRMATION_STRING = "hello";
 	Spinner commands;
+	
+	private long listeningForCommandsStart;
+		
+	/** Audio feedback visualizer **/
+	private AudioFeedbackView audioFeedbackView;
+	private byte[] bytes = new byte[256];
+	
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -105,11 +111,12 @@ public class MainActivity extends Activity {
         
         initSpeechRecognizer();
         initTrainerButtons();
-        commands = (Spinner) findViewById(R.id.commands);        
+        commands = (Spinner) findViewById(R.id.commands);   
+        
+        audioFeedbackView = (AudioFeedbackView) findViewById(R.id.visualizerView);
 	}
 	
 	
-
 	/**
 	 * Initializes speech recognizer
 	 */
@@ -215,26 +222,32 @@ public class MainActivity extends Activity {
                 if (confirm){
                 	confirm = false;
 	                try {
-						sendCommand(str);
+						sendMsg(str, MSG_TYPE_COMMAND);
 					} catch (JSONException e) {
 						e.printStackTrace();
 					}
                 }else if (str.equals(CONFIRMATION_STRING)){
                 	confirm = true;
+                	startListeningForCommands();
                 }
                 startListening();
 			}
+
 
 			@Override
 			public void onRmsChanged(float noise) {
 				Log.v(TAG, "onRmsChanged: " + noise);	
 				
+				//updateVisualizer(noise);
+				audioFeedbackView.updateAudioFeedbackView(noise);
+				
+				// Handles instances where the voice recognition doesn't call onBeginningOfSpeech
 				if (noise > 8){
 					talked = true;
 				}else if (talked && noise < 3){
-					if (silenceStart == 0)
+					if (silenceStart == 0){
 						silenceStart = System.currentTimeMillis();
-					else if (System.currentTimeMillis() - silenceStart > 500){
+					}else if (System.currentTimeMillis() - silenceStart > 500){
 						silenceStart = 0;
 						talked = false;
 						speechRecognizer.stopListening();
@@ -242,12 +255,41 @@ public class MainActivity extends Activity {
 				}else{
 					silenceStart = 0;
 				}
+				
+				
+				// Handles when voice recognition is "activated" (after user says confirmation message) 
+				if (noise > 8){
+					
+				}else if (noise < 3){
+					
+				}
+			
 			}
         	
         });
     }
 
     /**
+     * 
+     */
+    protected void startListeningForCommands() {
+    	listeningForCommandsStart = System.currentTimeMillis();
+		
+    	
+    	// will send message to moverio
+    	
+    	// sendMsg("-10", MSG_TYPE_AUDIO_LEVEL);
+    	
+    	
+    	
+    	// right now it will initiate visual audio feedback thing
+    	
+	}
+
+    
+    
+
+	/**
      * Tells the speech recognizer to start listening
      */
     private void startListening(){
@@ -304,6 +346,7 @@ public class MainActivity extends Activity {
     	Log.v(TAG, "onPause");
     	if (dataUpdateReceiver != null) 
     		unregisterReceiver(dataUpdateReceiver);
+    	speechRecognizer.stopListening();
     }
     
     @Override
@@ -447,49 +490,7 @@ public class MainActivity extends Activity {
         }
     }
     
-    
-    /*
-     * Sends test input
-     */
-    public void send_1(View view) throws JSONException{
-    	JSONObject j = new JSONObject();
-    	j.put("type", "command");
-    	j.put("content", "1");
  
-    	sendMsg(j.toString());
-    }
-    
-    /*
-     * Sends test input
-     */
-    public void send_2(View view) throws JSONException{
-    	JSONObject j = new JSONObject();
-    	j.put("type", "command");
-    	j.put("content", "2");
- 
-    	sendMsg(j.toString());
-    }
-
-    
-    /**
-     * Call this function to send a message to the Moverio
-     * @param msg
-     * @return true if message was sent; false otherwise
-     */
-    private boolean sendMsg(String msg){
-    	long curActionTime = System.currentTimeMillis();
-    	
-    	// to prevent "spamming" of control panel commands    	
-    	if (curActionTime - lastActionTime < MIN_ACTION_TIME){
-    		Log.v("action time filter", "skip");
-    		return false;
-    	}   			
-    	mBoundService.sendMsg(msg);	
-    	Log.v("action time filter", "sent");
-    	lastActionTime = curActionTime;
-    	return true;
-    }
-
 
     /**
      * Call this function to send a command to the Moverio
@@ -497,10 +498,10 @@ public class MainActivity extends Activity {
      * @return true if message was sent; false otherwise
      * @throws JSONException 
      */
-    private boolean sendCommand(String msg) throws JSONException{
+    private boolean sendMsg(String msg, String type) throws JSONException{
     	long curActionTime = System.currentTimeMillis();
     	JSONObject j = new JSONObject();
-    	j.put("type", "command");
+    	j.put("type", type);
     	j.put("content", msg);
     	
     	// to prevent "spamming" of control panel commands    	
@@ -546,9 +547,11 @@ public class MainActivity extends Activity {
 	}
 
 	/**
+	 * Places a (word, command) pair into our SharedPreferences
+	 * Also adds a word onto a command array
 	 * 
-	 * @param command
-	 * @param word
+	 * @param command 
+	 * @param word 
 	 */
     private void writeTrainer(String command, String word){
     	if (command.equals(word))
@@ -580,9 +583,9 @@ public class MainActivity extends Activity {
     }
     	
     /**
-     * 
-     * @param word
-     * @return
+     * Gets the command that the input word is associated with
+     * @param word 
+     * @return the command that the word is associated with
      */
     private String getTrainer(String word){
     	Spinner spinner = (Spinner) findViewById(R.id.commands);
@@ -591,7 +594,6 @@ public class MainActivity extends Activity {
     		if (adapter.getItem(i).equals(word))
     			return word;
     	}
-    	
     	
     	String result = prefs.getString(word, "none");
     	if (!result.equals("none")){
@@ -603,8 +605,8 @@ public class MainActivity extends Activity {
     }
     
     /**
-     * 
-     * @param command
+     * Reads our dictionary and prints out all the words that can also be used for the command
+     * @param command the command we are checking the dictionary for 
      */
     private void readTrainer(String command){
     	Set<String> result = prefs.getStringSet(command, null);
@@ -621,13 +623,17 @@ public class MainActivity extends Activity {
     		    list.add(iterator.next());
     		    // Log.v(TAG,"command = "+iterator.next());
     		}
-    		final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, list);
+    		final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.listitem, list);
     		listView.setAdapter(adapter);
 
     	}
     	exportTrainer();
     }
     
+    
+    /**
+     * Exports our dictionary trainer to a .txt file as JSON arrays
+     */
     private void exportTrainer(){
     	try {
 			String filePath = Environment.getExternalStorageDirectory().toString() + "/trainer.txt";

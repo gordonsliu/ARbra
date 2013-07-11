@@ -12,48 +12,35 @@
 	     android:layout_alignParentTop="true"
 	     android:text="Train command"/>
  
-	<Button
-        android:id="@+id/send_1"
-        android:layout_width="50dp"
-        android:layout_height="wrap_content"
-        android:text="1" 
-        android:layout_toRightOf="@id/trainButton"
-        android:onClick="send_1"/>
-	
-	<Button
-        android:id="@+id/send_2"
-        android:layout_width="50dp"
-        android:layout_height="wrap_content"
-        android:text="2" 
-        android:layout_toRightOf="@id/send_1"
-        android:onClick="send_2"/>
-	
-	<CheckBox
-	    android:id="@+id/trainingCheckBox"
-	    android:layout_width="50dp"
-	    android:layout_height="50dp"
-	    android:layout_toRightOf="@id/send_2"
-	/>
-	
+
 	<TextView
 	    android:id="@+id/textView"
 	    android:layout_width="fill_parent"
-	    android:layout_height="150dp"
+	    android:layout_height="120dp"
 		android:layout_below="@id/trainButton"
 	/>
+	
+	<edu.cmu.hcii.novo.arbra.AudioFeedbackView
+            android:id="@+id/visualizerView"
+            android:layout_width="fill_parent"
+            android:layout_height="200dp" 
+            android:layout_below="@id/textView"
+            android:background="#000000"
+            >
+    </edu.cmu.hcii.novo.arbra.AudioFeedbackView>
 	
 	<Spinner
 	    android:id="@+id/commands"
 	    android:layout_width="fill_parent"
-	    android:layout_height="80dp" 
-	    android:layout_below="@id/textView"
+	    android:layout_height="50dp" 
+	    android:layout_below="@id/visualizerView"
 	    android:entries="@array/commands"
     />
 	
 	<ListView
 	    android:id="@+id/words"
 	    android:layout_width="fill_parent"
-	    android:layout_height="300dp"
+	    android:layout_height="170dp"
 		android:layout_below="@id/commands"
 	/>				
 	
