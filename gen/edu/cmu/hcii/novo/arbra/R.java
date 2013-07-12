@@ -24,15 +24,16 @@ public final class R {
         public static final int IP_Address=0x7f080003;
         public static final int IP_String=0x7f080004;
         public static final int Status=0x7f080001;
-        public static final int commands=0x7f08000c;
+        public static final int audioFeedbackButton=0x7f08000a;
+        public static final int commands=0x7f08000d;
         public static final int cp1=0x7f080008;
-        public static final int getTrainedButton=0x7f08000e;
-        public static final int menu_settings=0x7f08000f;
+        public static final int getTrainedButton=0x7f08000f;
+        public static final int menu_settings=0x7f080010;
         public static final int popup_element=0x7f080000;
-        public static final int textView=0x7f08000a;
+        public static final int textView=0x7f08000b;
         public static final int trainButton=0x7f080009;
-        public static final int visualizerView=0x7f08000b;
-        public static final int words=0x7f08000d;
+        public static final int visualizerView=0x7f08000c;
+        public static final int words=0x7f08000e;
     }
     public static final class layout {
         public static final int activity_main=0x7f030000;

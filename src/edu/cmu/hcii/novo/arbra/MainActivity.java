@@ -1,14 +1,7 @@
 package edu.cmu.hcii.novo.arbra;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -23,7 +16,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -34,13 +26,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
-import android.widget.Adapter;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
+import edu.cmu.hcii.novo.arbra.AudioFeedbackView.AudioFeedbackThread;
 
 public class MainActivity extends Activity {
 
@@ -81,9 +70,11 @@ public class MainActivity extends Activity {
 	Spinner commands;
 	
 	private long listeningForCommandsStart;
-		
+	public static long COMMANDS_TIMEOUT_DURATION = 10000; // in millesconds
+
 	/** Audio feedback visualizer **/
 	private AudioFeedbackView audioFeedbackView;
+	private AudioFeedbackThread audioFeedbackThread;
 	private byte[] bytes = new byte[256];
 	
 	
@@ -110,12 +101,26 @@ public class MainActivity extends Activity {
         textView = (TextView) findViewById(R.id.textView);
         
         initSpeechRecognizer();
-        initTrainerButtons();
         commands = (Spinner) findViewById(R.id.commands);   
         
+        TrainerFunctions.initTrainerButtons(commands, this, prefs, data);
+
         audioFeedbackView = (AudioFeedbackView) findViewById(R.id.visualizerView);
+        audioFeedbackThread = audioFeedbackView.getThread();
+        initAudioFeedbackButton();
 	}
 	
+	private void initAudioFeedbackButton(){
+		Button b = (Button) findViewById(R.id.audioFeedbackButton);
+		b.setOnClickListener(new OnClickListener(){
+
+			@Override
+			public void onClick(View arg0) {
+				audioFeedbackView.shift = !audioFeedbackView.shift;
+			}
+			
+		});
+	}
 	
 	/**
 	 * Initializes speech recognizer
@@ -136,7 +141,8 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onEndOfSpeech() {
-				Log.v(TAG, "onEndOfSpeech");				
+				Log.v(TAG, "onEndOfSpeech");
+				
 			}
 
 			@Override
@@ -214,23 +220,43 @@ public class MainActivity extends Activity {
                 float[] scores = results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
                 for (int i = 0; i < data.size(); i++)
                 {
-                          Log.d(TAG, "result " + data.get(i) +" = " + getTrainer(data.get(i)) + scores[i]);
-                          str += data.get(i) +" = " + getTrainer(data.get(i)) + "\n";
+                	Log.d(TAG, "result " + data.get(i) +" = " + TrainerFunctions.getTrainer(data.get(i), MainActivity.this, prefs) + scores[i]);
+                 	str += data.get(i) +" = " + TrainerFunctions.getTrainer(data.get(i), MainActivity.this, prefs) + "\n";
                 }
                 textView.setText(str);
                 
                 if (confirm){
-                	confirm = false;
+                	//confirm = false;
 	                try {
 						sendMsg(str, MSG_TYPE_COMMAND);
 					} catch (JSONException e) {
 						e.printStackTrace();
 					}
-                }else if (str.equals(CONFIRMATION_STRING)){
+                }else if (hasConfirmationString(CONFIRMATION_STRING,data)){
                 	confirm = true;
                 	startListeningForCommands();
                 }
                 startListening();
+                
+                
+			}
+			
+			/**
+			 * Checks ArrayList for a particular string
+			 * 
+			 * @param cmd string that we are looking for
+			 * @param data the ArrayList we are iterating through
+			 * @return true if the cmd string is found within the data ArrayList, false otherwise
+			 */
+			public boolean hasConfirmationString(String cmd, ArrayList<String> data){
+				for (int i = 0; i< data.size(); i++){
+					if (cmd.equals(data.get(i)) || cmd.equals(TrainerFunctions.getTrainer(data.get(i), MainActivity.this, prefs))){
+						Log.v("confiramtion","S");
+						return true;
+					}
+				}
+				return false;
+				
 			}
 
 
@@ -239,8 +265,9 @@ public class MainActivity extends Activity {
 				Log.v(TAG, "onRmsChanged: " + noise);	
 				
 				//updateVisualizer(noise);
+
 				audioFeedbackView.updateAudioFeedbackView(noise);
-				
+
 				// Handles instances where the voice recognition doesn't call onBeginningOfSpeech
 				if (noise > 8){
 					talked = true;
@@ -259,7 +286,7 @@ public class MainActivity extends Activity {
 				
 				// Handles when voice recognition is "activated" (after user says confirmation message) 
 				if (noise > 8){
-					
+
 				}else if (noise < 3){
 					
 				}
@@ -270,20 +297,18 @@ public class MainActivity extends Activity {
     }
 
     /**
-     * 
+     * Called when the confirmation phrase is said
      */
     protected void startListeningForCommands() {
     	listeningForCommandsStart = System.currentTimeMillis();
 		
-    	
     	// will send message to moverio
-    	
-    	// sendMsg("-10", MSG_TYPE_AUDIO_LEVEL);
-    	
-    	
+    		// sendMsg("-10", MSG_TYPE_AUDIO_LEVEL);
     	
     	// right now it will initiate visual audio feedback thing
-    	
+		audioFeedbackThread.setState(audioFeedbackView.STATE_ACTIVE);
+		
+		
 	}
 
     
@@ -346,7 +371,7 @@ public class MainActivity extends Activity {
     	Log.v(TAG, "onPause");
     	if (dataUpdateReceiver != null) 
     		unregisterReceiver(dataUpdateReceiver);
-    	speechRecognizer.stopListening();
+     	speechRecognizer.cancel();
     }
     
     @Override
@@ -517,168 +542,8 @@ public class MainActivity extends Activity {
     
     
     
-    
-    /**
-     * Initializes trainer ui
-     */
-	private void initTrainerButtons(){
-		Button trainButton = (Button) findViewById(R.id.trainButton);
-		trainButton.setOnClickListener(new OnClickListener(){
-			@Override
-			public void onClick(View arg0) {
-				String command = commands.getSelectedItem().toString();
-				for (int i = 0; i<data.size(); i++){
-					writeTrainer(command,data.get(i));
-				}
-			}
-			
-		});
-		
-		
-		Button getTrainedButton = (Button) findViewById(R.id.getTrainedButton);
-		getTrainedButton.setOnClickListener(new OnClickListener(){
-			@Override
-			public void onClick(View arg0){
-				String command = commands.getSelectedItem().toString();
-				readTrainer(command);				
-			}
-		});
-		
-	}
 
-	/**
-	 * Places a (word, command) pair into our SharedPreferences
-	 * Also adds a word onto a command array
-	 * 
-	 * @param command 
-	 * @param word 
-	 */
-    private void writeTrainer(String command, String word){
-    	if (command.equals(word))
-    		return;
-    	
-    	String result = prefs.getString(word, "none");
-    	
-    	if (result.equals("none")){
-    		SharedPreferences.Editor editor = prefs.edit();
-        	editor.putString(word, command);
-        	
-        	
-        	Set<String> commandWords = prefs.getStringSet(command,null);
-        	if (commandWords != null){
-        		commandWords.add(word);
-        		editor.putStringSet(command, commandWords);
-        	}else{
-        		Set<String> commandWordsSet = new HashSet<String>();
-        		commandWordsSet.add(word);
-        		editor.putStringSet(command, commandWordsSet);
-        	}
-        	editor.commit();	
-	    }else{
-	    	Toast.makeText(this, "Duplicate trained command: cmd = " +command+", word ="+word, Toast.LENGTH_LONG).show();
-	    	
-	    }
-    	
 
-    }
-    	
-    /**
-     * Gets the command that the input word is associated with
-     * @param word 
-     * @return the command that the word is associated with
-     */
-    private String getTrainer(String word){
-    	Spinner spinner = (Spinner) findViewById(R.id.commands);
-    	Adapter adapter = spinner.getAdapter();
-    	for (int i = 0; i < adapter.getCount(); i++){
-    		if (adapter.getItem(i).equals(word))
-    			return word;
-    	}
-    	
-    	String result = prefs.getString(word, "none");
-    	if (!result.equals("none")){
-    		return result;
-    	}else{
-	    	Toast.makeText(this, "Word not in database = "+ word, Toast.LENGTH_LONG).show();
-	    	return "";
-    	}
-    }
-    
-    /**
-     * Reads our dictionary and prints out all the words that can also be used for the command
-     * @param command the command we are checking the dictionary for 
-     */
-    private void readTrainer(String command){
-    	Set<String> result = prefs.getStringSet(command, null);
-		ListView listView = (ListView) findViewById(R.id.words); 
-
-    	if (result == null){
-    		listView.setAdapter(null);
-	    	Toast.makeText(this, "nothing here boss", Toast.LENGTH_LONG).show();
-    	}else{
-    		Iterator<String> iterator = result.iterator();
-		    final ArrayList<String> list = new ArrayList<String>();
-
-    		while (iterator.hasNext()){
-    		    list.add(iterator.next());
-    		    // Log.v(TAG,"command = "+iterator.next());
-    		}
-    		final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.listitem, list);
-    		listView.setAdapter(adapter);
-
-    	}
-    	exportTrainer();
-    }
-    
-    
-    /**
-     * Exports our dictionary trainer to a .txt file as JSON arrays
-     */
-    private void exportTrainer(){
-    	try {
-			String filePath = Environment.getExternalStorageDirectory().toString() + "/trainer.txt";
-			File myFile = new File(filePath);
-			myFile.createNewFile();
-			
-			FileWriter fw = new FileWriter(myFile.getAbsoluteFile());
-			BufferedWriter bw = new BufferedWriter(fw);
-			
-			//myOutWriter.write("");
-			JSONObject json = new JSONObject();
-
-			
-	    	for (int i = 0; i < commands.getCount(); i++){
-	    		String command = commands.getItemAtPosition(i).toString();
-	    		
-	        	Set<String> result = prefs.getStringSet(command, null);
-	        	if (result != null){
-	        		
-	        		JSONArray commandSet = new JSONArray();
-	        		Iterator<String> iterator = result.iterator();
-	        		while (iterator.hasNext()){
-	        			String word = iterator.next();
-	        		    Log.v(TAG,command +" , " +word);
-	        			commandSet.put(word);
-	        		}
-	        		json.put(command, commandSet);
-	        	}
-
-	    			
-	    	}
-		    Log.v(TAG,json.toString());
-
-		    bw.write(json.toString());
-		    bw.close();
-		    fw.close();	
-		    
-	    	Toast.makeText(this, "Done writing SD ", Toast.LENGTH_LONG).show();
-
-    	} catch (Exception e) {
-			Toast.makeText(getBaseContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-		}
-    	
-    	
-		
-    }
+	
 
 }

@@ -12,7 +12,14 @@
 	     android:layout_alignParentTop="true"
 	     android:text="Train command"/>
  
-
+	<Button
+	     android:id="@+id/audioFeedbackButton"
+	     android:layout_width="150dp"
+	     android:layout_height="wrap_content"
+	     android:layout_alignParentTop="true"
+	     android:layout_alignParentRight="true"
+	     android:text="Switch visualizer"/>
+	
 	<TextView
 	    android:id="@+id/textView"
 	    android:layout_width="fill_parent"
@@ -22,10 +29,9 @@
 	
 	<edu.cmu.hcii.novo.arbra.AudioFeedbackView
             android:id="@+id/visualizerView"
-            android:layout_width="fill_parent"
+            android:layout_width="300dp"
             android:layout_height="200dp" 
             android:layout_below="@id/textView"
-            android:background="#000000"
             >
     </edu.cmu.hcii.novo.arbra.AudioFeedbackView>
 	
