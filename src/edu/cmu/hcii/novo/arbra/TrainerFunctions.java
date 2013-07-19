@@ -12,12 +12,15 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Adapter;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -31,33 +34,6 @@ import android.widget.Toast;
  *
  */
 public class TrainerFunctions {
-
-	public static void initTrainerButtons(final Spinner commands, final Activity act, final SharedPreferences prefs, final ArrayList<String> data){
-		Button trainButton = (Button) act.findViewById(R.id.trainButton);
-		trainButton.setOnClickListener(new OnClickListener(){
-			@Override
-			public void onClick(View arg0) {
-				String command = commands.getSelectedItem().toString();
-				for (int i = 0; i<data.size(); i++){
-					TrainerFunctions.writeTrainer(command,data.get(i), act, prefs);
-				}
-			}
-			
-		});
-		
-		
-		Button getTrainedButton = (Button) act.findViewById(R.id.getTrainedButton);
-		getTrainedButton.setOnClickListener(new OnClickListener(){
-			@Override
-			public void onClick(View arg0){
-				String command = commands.getSelectedItem().toString();
-				TrainerFunctions.readTrainer(command, act, prefs);	
-				TrainerFunctions.exportTrainer(commands, command, act, prefs);
-			}
-		});
-		
-	}
-
 	
 	/**
 	 * Places a (word, command) pair into our SharedPreferences
@@ -92,7 +68,6 @@ public class TrainerFunctions {
 	    	
 	    }
     	
-
     }
     	
     /**
@@ -113,15 +88,35 @@ public class TrainerFunctions {
     		return result;
     	}else{
 	    	Toast.makeText(act, "Word not in database = "+ word, Toast.LENGTH_LONG).show();
-	    	return "";
+	    	return word;
     	}
+    }
+    
+    
+    /**
+     * Checks if the word is one of the commands
+     * 
+     * @param word
+     * @param act
+     * @return true if the word is a command, false otherwise
+     */
+    public static boolean isCommand(String word, Activity act){
+    	Spinner spinner = (Spinner) act.findViewById(R.id.commands);
+    	Adapter adapter = spinner.getAdapter();
+    
+    	for (int i = 0; i < adapter.getCount(); i++){
+    		if (adapter.getItem(i).equals(word))
+    			return true;
+    	}
+    	
+    	return false;
     }
     
     /**
      * Reads our dictionary and prints out all the words that can also be used for the command
      * @param command the command we are checking the dictionary for 
      */
-    public static void readTrainer(String command, Activity act, SharedPreferences prefs){
+    public static void readTrainer(String command, final Activity act, SharedPreferences prefs){
     	Set<String> result = prefs.getStringSet(command, null);
 		ListView listView = (ListView) act.findViewById(R.id.words); 
 
@@ -137,10 +132,39 @@ public class TrainerFunctions {
     		    // Log.v(TAG,"command = "+iterator.next());
     		}
     		final ArrayAdapter<String> adapter = new ArrayAdapter<String>(act, R.layout.listitem, list);
+    		
     		listView.setAdapter(adapter);
+    		listView.setOnItemClickListener(new OnItemClickListener(){
 
+				@Override
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					// TODO make this delete the entry
+			        
+					
+				}
+    			
+    		});
     	}
     }
+    
+    
+    /**
+     * Removes a word from the dictionary.
+     * 
+     * @param word
+     * @param act
+     * @param prefs
+     * @return
+     */
+    public static boolean removeWord(String word, Activity act, SharedPreferences prefs){
+    	
+    	
+    	
+    	
+    	return false;
+    	
+    }
+
     
     
     /**

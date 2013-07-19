@@ -180,9 +180,11 @@ public class ConnectionService extends Service {
 			}
     	}else{
     		// if system is not connected, make connection pop up show up
+    		/* 
     		 Intent dialogIntent = new Intent(this, ConnectionPopUp.class);
 			 dialogIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 			 getApplication().startActivity(dialogIntent);
+			 */
     	}
     }    
     
