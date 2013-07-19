@@ -16,8 +16,10 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.media.ToneGenerator;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -173,7 +175,13 @@ public class MainActivity extends Activity {
 	 */
     private void initSpeechRecognizer(){
     	speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-        speechRecognizer.setRecognitionListener(new RecognitionListener(){
+        speechRecognizer.setRecognitionListener(recognitionListener);
+    }
+
+    /**
+     * Sets up recognition Listener
+     */
+    private RecognitionListener recognitionListener = new RecognitionListener(){
 
 			@Override
 			public void onBeginningOfSpeech() {
@@ -200,11 +208,6 @@ public class MainActivity extends Activity {
 					errorString = "ERROR_NETWORK_TIMEOUT";
 				}else if (error == SpeechRecognizer.ERROR_AUDIO){
 					errorString = "ERROR_AUDIO";
-	                //if (audioFeedbackThread.getCurState() == audioFeedbackView.STATE_ACTIVE)	// refreshes timers for threshold line
-	                //	audioFeedbackThread.refreshThresholdLine();
-	                /*else
-	                	setState(audioFeedbackView.STATE_INACTIVE);
-	                	*/
 					setBusy(false);
 				}else if (error == SpeechRecognizer.ERROR_CLIENT){
 					errorString = "ERROR_CLIENT";
@@ -214,15 +217,10 @@ public class MainActivity extends Activity {
 					errorString = "ERROR_NETWORK";
 				}else if (error == SpeechRecognizer.ERROR_NO_MATCH){
 					errorString = "ERROR_NO_MATCH";
-	                //if (audioFeedbackThread.getCurState() == audioFeedbackView.STATE_ACTIVE)	// refreshes timers for threshold line
-	                //	audioFeedbackThread.refreshThresholdLine();
-	                /*else
-	                	setState(audioFeedbackView.STATE_INACTIVE);*/
 					setBusy(false);
-
 				}else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
 					errorString = "ERROR_RECOGNIZER_BUSY";
-					
+					cancelListener();
 				}else if (error == SpeechRecognizer.ERROR_SERVER){
 					errorString = "ERROR_SERVER";
 				}else if (error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
@@ -260,6 +258,7 @@ public class MainActivity extends Activity {
                 String str = new String();
                 Log.d(TAG, "onResults " + results);
                                 
+                /** For outputting text to UI **/
                 data = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 float[] scores = results.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
                 for (int i = 0; i < data.size(); i++)
@@ -269,10 +268,11 @@ public class MainActivity extends Activity {
                 }
                 textView.setText(str);
                 
+                // If in active listening state (has said confirmation message)
                 if (audioFeedbackThread.getCurState() == audioFeedbackView.STATE_ACTIVE){
                 	audioFeedbackThread.refreshThresholdLine();
 	                try {
-						if (REMOTE){
+						if (REMOTE){  /** sends messages to connected device  **/
 							String trainedString = TrainerFunctions.getTrainer(data.get(0),MainActivity.this,prefs);
 							sendMsg(trainedString, MSG_TYPE_COMMAND);
 							if (TrainerFunctions.isCommand(trainedString, MainActivity.this))
@@ -281,23 +281,25 @@ public class MainActivity extends Activity {
 					} catch (JSONException e) {
 						e.printStackTrace();
 					}
+	                
+	            // If said confirmation message
                 }else if (hasConfirmationString(CONFIRMATION_STRING,data)){
-                	//confirm = true;
 					playCommandAudioFeedback();
                 	audioFeedbackThread.setState(audioFeedbackView.STATE_ACTIVE);
 					try {
-						if (REMOTE)
+						if (REMOTE) /** sends messages to connected device  **/
 							sendMsg(TrainerFunctions.getTrainer(data.get(0),MainActivity.this,prefs), MSG_TYPE_COMMAND);
 					} catch (JSONException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 
 
+                }else{
+
                 }
-                startListening();
-				setBusy(false);
-                
+                setBusy(false);
+                startListening(); // loops again
+				
 			}
 			
 			/**
@@ -346,21 +348,23 @@ public class MainActivity extends Activity {
 			
 			}
         	
-        });
-    }
-
+        };
+    
+    
 	/**
      * Tells the speech recognizer to start listening
      */
     private void startListening(){
+    	
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);        
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
         //intent.putExtra(RecognizerIntent.EXTRA_CONFIDENCE_SCORES, true);
 
         intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5); 
+        
         speechRecognizer.startListening(intent);
-             Log.i("111111","11111111");
+        Log.i("111111","11111111");
     }
     
     /**
@@ -388,7 +392,7 @@ public class MainActivity extends Activity {
         IntentFilter intentFilter = new IntentFilter("connection");
         registerReceiver(dataUpdateReceiver, intentFilter);
         startListening();
-     	audioFeedbackThread.setRunning(true);
+     	//audioFeedbackThread.setRunning(true);
     }
     
     @Override
@@ -398,7 +402,7 @@ public class MainActivity extends Activity {
     	if (dataUpdateReceiver != null) 
     		unregisterReceiver(dataUpdateReceiver);
      	speechRecognizer.cancel();
-     	audioFeedbackThread.setRunning(false);
+     	//audioFeedbackThread.setRunning(false);
     }
     
     @Override
@@ -522,15 +526,24 @@ public class MainActivity extends Activity {
     /**
      * Plays a beep sound
      */
+	private Handler mHandler = new Handler();
     private void playCommandAudioFeedback(){
-         mAudioManager.setStreamMute(AudioManager.STREAM_NOTIFICATION, false);
+         //mAudioManager.setStreamMute(AudioManager.STREAM_NOTIFICATION, false);
 
     	 final ToneGenerator tg = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100);
          tg.startTone(ToneGenerator.TONE_PROP_BEEP);
          
+         mHandler.postDelayed(new Runnable() {
+             public void run() {
+                 tg.release();
+                 return;
+             }
+         }, 200);
+         
         //mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 
     }
+
 	
 	/**
 	 * Listens to broadcast messages
@@ -574,16 +587,16 @@ public class MainActivity extends Activity {
     	// to prevent "spamming" of control panel commands    	
     	
     	if (type == MSG_TYPE_AUDIO_LEVEL){
-    		//if (Float.parseFloat(msg) < 3){
+    		//if (Float.parseFloat(msg) < audioFeedbackThread.MINIMUM_RMS_REFRESH){
     	    	if (curActionTime - lastActionTime < MIN_ACTION_TIME){
     	    	//	Log.v("action time filter", "skip");
     	    		return false;
     	    	}   			
     		//}
     	}
-    			
+    	
     	mBoundService.sendMsg(j.toString());	
-    	//Log.v("action time filter", "sent");
+    	Log.v("action time filter", "sent: " + j.toString());
     	lastActionTime = curActionTime;
     	return true;
     }

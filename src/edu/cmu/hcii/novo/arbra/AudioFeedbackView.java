@@ -26,7 +26,9 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 		private int BAR_MAXIMUM_OFFSET = 100; // how quickly bars grow in height
 		private int BAR_MARGIN = 5; // size of margin between bars
 		private int MINIMUM_RMS_READ = 1;
-		private long COMMANDS_TIMEOUT_DURATION = 10000; // in millesconds
+		public int MINIMUM_RMS_REFRESH = 4;
+
+		private long COMMANDS_TIMEOUT_DURATION = 7000; // in millesconds
 
 		private int viewWidth;	// width of view
 		public int viewHeight;	// height of view 
@@ -230,7 +232,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     		lastDrawTime = System.currentTimeMillis();
     		//Log.v("lastDrawTime, offset", lastDrawTime +", "+ levelThreshold);
 	    	
-    		if (levelThreshold/(float)viewHeight < 0.25f){
+    		if (levelThreshold/(float)viewHeight <= 0f){
     			setState(STATE_INACTIVE);
     		}
 
@@ -434,7 +436,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     		}
     		convertAllPixelsToDrawnPixels();
     		
-    		if (rms > 3)
+    		if (rms > MINIMUM_RMS_REFRESH)
     			lastMessageTime = System.currentTimeMillis();
     		
     		//drawnLevels[drawnLevels.length-1] = convertPixelToDrawnPixel(drawnLevels.length-1);

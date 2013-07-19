@@ -28,9 +28,9 @@ public class ConnectionService extends Service {
 	private DataOutputStream streamOut  = null;
 	
 	// receive thread
-	private Runnable recRunnable		= null;
-	private Thread recThread            = null;
-	private DataInputStream streamIn	= null;
+	//private Runnable recRunnable		= null;
+	//private Thread recThread            = null;
+	//private DataInputStream streamIn	= null;
 	
 	public boolean streaming = false; // True if in the middle of an image frame. 
 									  // False if all the data for the current image frame has been read or if the stream has not started.
@@ -132,7 +132,7 @@ public class ConnectionService extends Service {
 	    try {
 	    	if (socket!= null) socket.close();
 	    	if (streamOut != null) streamOut.close();
-	    	if (streamIn != null) streamIn.close();
+	    	//if (streamIn != null) streamIn.close();
 	    } catch (IOException e) {
 			e.printStackTrace();
 	    }
@@ -156,9 +156,11 @@ public class ConnectionService extends Service {
             try {               
                 socket.connect(socketAddress, 1000);
                 streamOut = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                recRunnable = new receiveSocket();
-                recThread = new Thread(recRunnable);
-                recThread.start();
+                sendBroadcastMsg("connected");
+                run = true;
+                //recRunnable = new receiveSocket();
+                //recThread = new Thread(recRunnable);
+                //recThread.start();
             } catch (IOException e) {
             	//stop();
                 e.printStackTrace();
@@ -170,14 +172,24 @@ public class ConnectionService extends Service {
      * Sends a string to output stream
      * @param msg the string to be sent
      */
-    public void sendMsg(String msg){
+    public void sendMsg(final String msg){
     	if (run){ // if system is connected
-		  	try {
-				streamOut.writeBytes(msg+"\n");
-				streamOut.flush();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		  	Runnable run = new Runnable(){
+				@Override
+				public void run() {
+		    		try {
+						streamOut.writeBytes(msg+"\n");
+						streamOut.flush();
+						Thread.currentThread().interrupt();
+						return;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}					
+				}
+		  	};
+		  	Thread t = new Thread(run);
+		  	t.start();
+
     	}else{
     		// if system is not connected, make connection pop up show up
     		/* 
@@ -192,6 +204,7 @@ public class ConnectionService extends Service {
      * Thread receives messages
      * 
      */
+    /*
     class receiveSocket implements Runnable {
 		private long beginTime;
 
@@ -208,32 +221,11 @@ public class ConnectionService extends Service {
 		      {  Log.v(TAG, "Error getting input stream: " + ioe);
 		         
 		      }
-			// when connected, this thread will stay in this while loop
-			while (run )
-		      {
-				
-			/*	try
-		         {  beginTime = System.currentTimeMillis();
-	            	long timeElapsed = System.currentTimeMillis() - beginTime;
-	            	
-	            	int bytesRead = streamIn.read(buffer); // reads bytes from the input stream
 
-		         	Log.v("bytesRead",""+bytesRead);
-		         	Log.v("size",""+size);
-		         	
-			        if (bytesRead > 0){ 
-			         	
-			        }
-		         	
-		         }
-		         catch(IOException ioe)
-		         {  Log.v(TAG, "Listening error: " + ioe.getMessage());
-		            
-		         } */
-		      }
+		      
 		}
     }
-    
+    */
   
     /**
      * Forces the socket to disconnect
@@ -246,7 +238,7 @@ public class ConnectionService extends Service {
 	    try {
 	    	if (socket!= null) socket.close();
 	    	if (streamOut != null) streamOut.close();
-	    	if (streamIn != null) streamIn.close();
+	    	//if (streamIn != null) streamIn.close();
 	    } catch (IOException e) {
 			e.printStackTrace();
 	    }
