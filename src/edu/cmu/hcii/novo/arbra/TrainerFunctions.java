@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.util.Log;
@@ -25,6 +26,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -116,7 +118,7 @@ public class TrainerFunctions {
      * Reads our dictionary and prints out all the words that can also be used for the command
      * @param command the command we are checking the dictionary for 
      */
-    public static void readTrainer(String command, final Activity act, SharedPreferences prefs){
+    public static void readTrainer(final String command, final Activity act, final SharedPreferences prefs){
     	Set<String> result = prefs.getStringSet(command, null);
 		ListView listView = (ListView) act.findViewById(R.id.words); 
 
@@ -139,9 +141,33 @@ public class TrainerFunctions {
 				@Override
 				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 					// TODO make this delete the entry
-			        
+			        final String word = ((TextView)view).getText().toString();
+					//Log.v("word",((TextView)view).getText().toString());
 					
+			        AlertDialog.Builder alertDialog = new AlertDialog.Builder(act);
+			        alertDialog.setTitle("Confirm Delete...");
+			        alertDialog.setMessage("Are you sure you want delete this word: "+ word);
+			        
+			        // Setting Positive "Yes" Btn
+			        alertDialog.setPositiveButton("YES",
+			                new DialogInterface.OnClickListener() {
+			                    public void onClick(DialogInterface dialog, int which) {
+			                    	removeWord(word,act,prefs);
+			                    	readTrainer(command,act,prefs);
+			                    }
+			                });
+			        // Setting Negative "NO" Btn
+			        alertDialog.setNegativeButton("NO",
+			                new DialogInterface.OnClickListener() {
+			                    public void onClick(DialogInterface dialog, int which) {
+			                    	dialog.cancel();
+			                    }
+			                });
+			         
+			        // Showing Alert Dialog
+			        alertDialog.show();
 				}
+				
     			
     		});
     	}
@@ -157,9 +183,19 @@ public class TrainerFunctions {
      * @return
      */
     public static boolean removeWord(String word, Activity act, SharedPreferences prefs){
-    	
-    	
-    	
+    	String command = prefs.getString(word, "none");
+ 
+    	if (!command.equals("none")){
+    		SharedPreferences.Editor editor = prefs.edit();
+        	editor.remove(word);
+        	
+        	Set<String> result = prefs.getStringSet(command, null);
+        	result.remove(word);
+        	
+    		editor.putStringSet(command, result);
+    		editor.commit();
+        	return true;
+    	}
     	
     	return false;
     	

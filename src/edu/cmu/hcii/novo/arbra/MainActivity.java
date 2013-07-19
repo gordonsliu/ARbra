@@ -388,6 +388,7 @@ public class MainActivity extends Activity {
         IntentFilter intentFilter = new IntentFilter("connection");
         registerReceiver(dataUpdateReceiver, intentFilter);
         startListening();
+     	audioFeedbackThread.setRunning(true);
     }
     
     @Override
@@ -397,6 +398,7 @@ public class MainActivity extends Activity {
     	if (dataUpdateReceiver != null) 
     		unregisterReceiver(dataUpdateReceiver);
      	speechRecognizer.cancel();
+     	audioFeedbackThread.setRunning(false);
     }
     
     @Override
