@@ -31,7 +31,10 @@
 	<item>annotations</item>
 	<item>ground</item>
 	<item>close</item>
-	
+	<item>expand</item>
+	<item>collapse</item>
+	<item>log</item>
+		
 	<item>start</item>
 	<item>pause</item>
 	<item>reset</item>

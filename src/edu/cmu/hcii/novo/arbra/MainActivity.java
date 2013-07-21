@@ -16,7 +16,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.os.Handler;
@@ -392,7 +391,7 @@ public class MainActivity extends Activity {
         IntentFilter intentFilter = new IntentFilter("connection");
         registerReceiver(dataUpdateReceiver, intentFilter);
         startListening();
-     	//audioFeedbackThread.setRunning(true);
+     	audioFeedbackThread.unpause();
     }
     
     @Override
@@ -402,13 +401,14 @@ public class MainActivity extends Activity {
     	if (dataUpdateReceiver != null) 
     		unregisterReceiver(dataUpdateReceiver);
      	speechRecognizer.cancel();
-     	//audioFeedbackThread.setRunning(false);
+     	audioFeedbackThread.pause();
     }
     
     @Override
     protected void onStop() {
         super.onStop();
         Log.v(TAG, "onStop");
+     	speechRecognizer.destroy();
         // The activity is no longer visible (it is now "stopped")
     }
     
@@ -593,6 +593,8 @@ public class MainActivity extends Activity {
     	    		return false;
     	    	}   			
     		//}
+    	   	audioFeedbackView.updateAudioFeedbackView(Float.parseFloat(msg));
+
     	}
     	
     	mBoundService.sendMsg(j.toString());	
@@ -626,7 +628,6 @@ public class MainActivity extends Activity {
      * @param rms
      */
     private void setAudioLevel(float rms){
-   		audioFeedbackView.updateAudioFeedbackView(rms);
    		if (REMOTE)
    		{
     		try {

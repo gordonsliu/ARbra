@@ -23,12 +23,12 @@ import android.view.SurfaceView;
 public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Callback {
 	class AudioFeedbackThread extends Thread {
 		private static final int NUMBER_OF_BARS = 8;
-		private int BAR_MAXIMUM_OFFSET = 100; // how quickly bars grow in height
+		private int BAR_MAXIMUM_OFFSET = 200; // how quickly bars grow in height
 		private int BAR_MARGIN = 5; // size of margin between bars
 		private int MINIMUM_RMS_READ = 1;
-		public int MINIMUM_RMS_REFRESH = 4;
+		public int MINIMUM_RMS_REFRESH = 7;
 
-		private long COMMANDS_TIMEOUT_DURATION = 7000; // in millesconds
+		private long COMMANDS_TIMEOUT_DURATION = 4000; // in millesconds
 
 		private int viewWidth;	// width of view
 		public int viewHeight;	// height of view 
@@ -55,6 +55,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
         private boolean mRun = false;
         
         private int state = STATE_INACTIVE;
+        private boolean paused = false;
         
         public AudioFeedbackThread(SurfaceHolder surfaceHolder, Context context) {
             // get handles to some important objects
@@ -72,7 +73,10 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
                     c = mSurfaceHolder.lockCanvas(null);
                     synchronized (mSurfaceHolder) {
                         //if (mMode == STATE_RUNNING) updatePhysics();
-                        doDraw(c);
+                        if (!paused)
+                        	doDraw(c);
+                        //else
+                        //	paused = false;
                     }
                 } finally {
                     // do this in a finally so that if an exception is thrown
@@ -102,9 +106,11 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
          * @param s current state
          */
         public void setState(int s){
-        	state = s;
-        	if (state == STATE_ACTIVE){
-        		refreshThresholdLine();
+        	synchronized (mSurfaceHolder){
+	        	state = s;
+	        	if (state == STATE_ACTIVE){
+	        		refreshThresholdLine();
+	        	}
         	}
         }
         
@@ -121,8 +127,10 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
          * Sets time for last received message (used to calculate y-coordinate of threshold line)
          */
         public void refreshThresholdLine(){
-    		levelThreshold = viewHeight;
-    		lastMessageTime = System.currentTimeMillis();
+        	synchronized (mSurfaceHolder){
+	    		levelThreshold = viewHeight;
+	    		lastMessageTime = System.currentTimeMillis();
+        	}
         }
         
     	/**
@@ -174,7 +182,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 			//p.setMaskFilter(new BlurMaskFilter(25, Blur.INNER));
 			//p.setMaskFilter(new BlurMaskFilter(35, Blur.OUTER));
 			//p.setMaskFilter(new BlurMaskFilter(15, Blur.SOLID));
-			pBar.setMaskFilter(new BlurMaskFilter(10, Blur.NORMAL));
+			//pBar.setMaskFilter(new BlurMaskFilter(10, Blur.NORMAL));
 			//p.setShadowLayer(70, 0, 0, Color.CYAN);
 			
 			pThreshold = new Paint();
@@ -425,21 +433,42 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     	 * @param rms raw rms value from SpeechRecognizer
     	 */
     	private void updateAudioValues(float rms){
-    		float percent = convertRmsToPercent(rms);
-    		int pixel = convertPercentToPixel(percent);
-    		
-    		if (shift){
-    			shiftAudioLevelArray(pixel);
-    		}else{
-    			setBarRandomSpeeds();
-    			fillAudioLevelArrayRandom(pixel);
+    		synchronized (mSurfaceHolder){
+	    		float percent = convertRmsToPercent(rms);
+	    		int pixel = convertPercentToPixel(percent);
+	    		
+	    		if (shift){
+	    			shiftAudioLevelArray(pixel);
+	    		}else{
+	    			setBarRandomSpeeds();
+	    			fillAudioLevelArrayRandom(pixel);
+	    		}
+	    		convertAllPixelsToDrawnPixels();
+	    		
+	    		if (rms > MINIMUM_RMS_REFRESH)
+	    			lastMessageTime = System.currentTimeMillis();
+	    		
+	    		//drawnLevels[drawnLevels.length-1] = convertPixelToDrawnPixel(drawnLevels.length-1);
+    	
     		}
-    		convertAllPixelsToDrawnPixels();
-    		
-    		if (rms > MINIMUM_RMS_REFRESH)
-    			lastMessageTime = System.currentTimeMillis();
-    		
-    		//drawnLevels[drawnLevels.length-1] = convertPixelToDrawnPixel(drawnLevels.length-1);
+    	}
+    	
+    	/**
+    	 * Pauses drawing
+    	 */
+    	public void pause(){
+    		synchronized (mSurfaceHolder) {
+    			paused = true;
+    		}
+    	}
+    	
+    	/**
+    	 * Unauses drawing
+    	 */
+    	public void unpause(){
+    		synchronized (mSurfaceHolder) {
+    			paused = false;
+    		}
     	}
 	}
 	

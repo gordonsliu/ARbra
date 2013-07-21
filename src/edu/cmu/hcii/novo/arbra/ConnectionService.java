@@ -174,13 +174,14 @@ public class ConnectionService extends Service {
      */
     public void sendMsg(final String msg){
     	if (run){ // if system is connected
+    		
 		  	Runnable run = new Runnable(){
 				@Override
 				public void run() {
 		    		try {
 						streamOut.writeBytes(msg+"\n");
 						streamOut.flush();
-						Thread.currentThread().interrupt();
+
 						return;
 					} catch (IOException e) {
 						e.printStackTrace();
