@@ -20,6 +20,14 @@
 	     android:layout_alignParentRight="true"
 	     android:text="Switch visualizer"/>
 	
+	<Button
+	     android:id="@+id/speechCloseButton"
+	     android:layout_width="150dp"
+	     android:layout_height="wrap_content"
+	     android:layout_alignParentRight="true"
+	     android:layout_below="@id/audioFeedbackButton"
+	     android:text="Close speech"/>
+	
 	<TextView
 	    android:id="@+id/textView"
 	    android:layout_width="fill_parent"

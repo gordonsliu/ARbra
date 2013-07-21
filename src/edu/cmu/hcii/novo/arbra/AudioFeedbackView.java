@@ -474,7 +474,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 	
 	private String TAG = "AudioFeedbackView";
 
-	public boolean shift = true; // if shift is true, we show the left/right moving visualizer, if false, then we show the up/down bars
+	public boolean shift = false; // if shift is true, we show the left/right moving visualizer, if false, then we show the up/down bars
 	
 	public int STATE_INACTIVE = 0;
 	public int STATE_ACTIVE = 1;
