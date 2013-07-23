@@ -1,16 +1,22 @@
 package edu.cmu.hcii.novo.arbra;
 
 import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -45,6 +51,7 @@ public class ConnectionService extends Service {
 	private final IBinder myBinder = new LocalBinder();
 	
 	private static String TAG = "ConnectionService";
+	private DataUpdateReceiver dataUpdateReceiver;
 
 	@Override
 	public IBinder onBind(Intent arg0) {
@@ -102,6 +109,12 @@ public class ConnectionService extends Service {
         super.onCreate();
         Log.v(TAG, "onCreate");
         socket = new Socket();
+        
+		if (dataUpdateReceiver == null)
+			dataUpdateReceiver = new DataUpdateReceiver();
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction("speech");
+		registerReceiver(dataUpdateReceiver, intentFilter);
     }
 
     @Override
@@ -115,8 +128,35 @@ public class ConnectionService extends Service {
         Log.v(TAG, "onDestroy");
         stop();
         socket = null;
+        
+		if (dataUpdateReceiver != null)
+			unregisterReceiver(dataUpdateReceiver);
     }
 
+	/**
+	 * Listens to broadcast messages
+	 */
+	private class DataUpdateReceiver extends BroadcastReceiver {
+		@Override
+		public void onReceive(Context context, Intent intent) {
+			Log.v(TAG, "on receive");
+			Bundle b = intent.getExtras();
+			
+			if (intent.getAction().equals("speech")){
+				if (b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_COMMAND) || 
+					b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_AUDIO_BUSY) ||
+					b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_AUDIO_LEVEL) ||
+					b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_AUDIO_STATE)){
+					try {					
+						sendMoverioMsg(b.getString("msg"),b.getString("type"));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+	}
+    
 	public boolean isConnected() {
 		return run;
 	}
@@ -258,5 +298,26 @@ public class ConnectionService extends Service {
         Intent intent = new Intent("connection");
         intent.putExtra("msg", msg);
         sendBroadcast(intent);
+	}
+	
+	/**
+	 * Call this function to send a command to the Moverio
+	 * 
+	 * @param msg
+	 * @return true if message was sent; false otherwise
+	 * @throws JSONException
+	 */
+	
+	private boolean sendMoverioMsg(String msg, String type) throws JSONException {
+		JSONObject j = new JSONObject();
+		String content = msg.toLowerCase();
+
+		j.put("type", type);
+		j.put("content", content);
+
+		// to prevent "spamming" of control panel commands
+
+		sendMsg(j.toString());
+		return true;
 	}
 }

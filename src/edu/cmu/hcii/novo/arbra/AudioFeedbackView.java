@@ -26,9 +26,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 		private int BAR_MAXIMUM_OFFSET = 200; // how quickly bars grow in height
 		private int BAR_MARGIN = 5; // size of margin between bars
 		private int MINIMUM_RMS_READ = 1;
-		public int MINIMUM_RMS_REFRESH = 7;
 
-		private long COMMANDS_TIMEOUT_DURATION = 4000; // in millesconds
 
 		private int viewWidth;	// width of view
 		public int viewHeight;	// height of view 
@@ -240,9 +238,9 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     		lastDrawTime = System.currentTimeMillis();
     		//Log.v("lastDrawTime, offset", lastDrawTime +", "+ levelThreshold);
 	    	
-    		if (levelThreshold/(float)viewHeight <= 0f){
-    			setState(STATE_INACTIVE);
-    		}
+    		//if (levelThreshold/(float)viewHeight <= 0f){
+    			//setState(STATE_INACTIVE);
+    		//}
 
     	}
     	
@@ -251,7 +249,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     	 * @return
     	 */
     	private float getThresholdLineOffset(){
-    		return (((System.currentTimeMillis() - lastDrawTime) / ((float)COMMANDS_TIMEOUT_DURATION)) * viewHeight);
+    		return (((System.currentTimeMillis() - lastDrawTime) / ((float)SpeechRecognizerService.COMMANDS_TIMEOUT_DURATION)) * viewHeight);
     	}
     	
     	/**
@@ -259,7 +257,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     	 * @return
     	 */
     	private float getThresholdLineHeight(){
-    		return viewHeight - (((System.currentTimeMillis() - lastMessageTime) / ((float)COMMANDS_TIMEOUT_DURATION)) * viewHeight);
+    		return viewHeight - (((System.currentTimeMillis() - lastMessageTime) / ((float)SpeechRecognizerService.COMMANDS_TIMEOUT_DURATION)) * viewHeight);
     	}
     	
 
@@ -445,7 +443,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 	    		}
 	    		convertAllPixelsToDrawnPixels();
 	    		
-	    		if (rms > MINIMUM_RMS_REFRESH)
+	    		if (rms > SpeechRecognizerService.MINIMUM_RMS_REFRESH)
 	    			lastMessageTime = System.currentTimeMillis();
 	    		
 	    		//drawnLevels[drawnLevels.length-1] = convertPixelToDrawnPixel(drawnLevels.length-1);

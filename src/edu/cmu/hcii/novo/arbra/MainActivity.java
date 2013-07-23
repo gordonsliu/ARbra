@@ -2,9 +2,6 @@ package edu.cmu.hcii.novo.arbra;
 
 import java.util.ArrayList;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
@@ -16,20 +13,18 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
-import android.media.ToneGenerator;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import edu.cmu.hcii.novo.arbra.AudioFeedbackView.AudioFeedbackThread;
@@ -40,6 +35,8 @@ public class MainActivity extends Activity {
 	private static final String TAG = "MainActivity_client"; // used for logging
 																// purposes
 
+	private boolean showGUI = true;
+	
 	private MainApp MainApp;
 
 	/** Dictionary trainer & IP address data storage **/
@@ -47,21 +44,21 @@ public class MainActivity extends Activity {
 	SharedPreferences prefs;
 	public String ip_address;
 
-	/** To prevent "spamming" of onRmsChanged: **/
-	public long lastActionTime = 0; // the time of the last message sent.
-	private static int MIN_ACTION_TIME = 150; // the minimum amount of time (ms)
-												// that must pass before another
-												// voice rms update is sent
 
 	/** ConnectionService **/
-	private ConnectionService mBoundService;
-	private boolean mIsBound;
+	private ConnectionService mBoundConnectionService;
+	private boolean mConnectionIsBound;
 	private static String MSG_TYPE_COMMAND = "command";
 	private static String MSG_TYPE_AUDIO_LEVEL = "audioLevel";
 	private static String MSG_TYPE_AUDIO_BUSY = "audioBusy";
 
+	/** Speech Recognizer Service **/
+	private SpeechRecognizerService mBoundSpeechService;
+	private boolean mSpeechIsBound;
+
+	
 	/** Speech recognition **/
-	private SpeechRecognizer speechRecognizer;
+	//private SpeechRecognizer speechRecognizer;
 	private TextView textView;
 	private ArrayList<String> data; // current results
 	private long lastSpeechRecognizerActionTime;
@@ -80,17 +77,18 @@ public class MainActivity extends Activity {
 	/** Audio feedback visualizer **/
 	private AudioFeedbackView audioFeedbackView;
 	private AudioFeedbackThread audioFeedbackThread;
-	// private byte[] bytes = new byte[256];
-	private static boolean REMOTE = true; // if we are only working with local
-											// audiofeedbackview
+	private static boolean REMOTE = true; // if we are only working with local audiofeedbackview
 
 	/** For muting Jellybean's audio feedback for SpeechRecognizer **/
 	private AudioManager mAudioManager;
-
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		
 		setContentView(R.layout.control_panel);
 		Log.v(TAG, "onCreate");
 
@@ -98,9 +96,12 @@ public class MainActivity extends Activity {
 		MainApp = (MainApp) MainActivity.this.getApplication();
 
 		// to begin ConnectionService (connection to Moverio)
-		if (!isMyServiceRunning())
+		if (!isSpeechServiceRunning())
+			startService(new Intent(MainActivity.this, SpeechRecognizerService.class));
+		if (!isConnectionServiceRunning())
 			startService(new Intent(MainActivity.this, ConnectionService.class));
-		doBindService();
+		doBindSpeechService();
+		doBindConnectionService();
 
 		// stores data on android tablet (in this case, we are storing the IP
 		// address for future use)
@@ -109,7 +110,6 @@ public class MainActivity extends Activity {
 
 		textView = (TextView) findViewById(R.id.textView);
 
-		initSpeechRecognizer();
 		initSpeechButtons();
 		initTrainerButtons();
 
@@ -119,6 +119,7 @@ public class MainActivity extends Activity {
 
 		mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 		mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+
 	}
 
 	private void initSpeechButtons() {
@@ -127,7 +128,7 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onClick(View arg0) {
-				cancelListener();
+				//cancelListener();
 			}
 
 		});
@@ -181,266 +182,6 @@ public class MainActivity extends Activity {
 		});
 	}
 
-	/**
-	 * Initializes speech recognizer
-	 */
-	private void initSpeechRecognizer() {
-		speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
-		speechRecognizer.setRecognitionListener(recognitionListener);
-	}
-
-	/**
-	 * Sets up recognition Listener
-	 */
-	private RecognitionListener recognitionListener = new RecognitionListener() {
-
-		@Override
-		public void onBeginningOfSpeech() {
-			Log.v(TAG, "onBeginningOfSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-		}
-
-		@Override
-		public void onBufferReceived(byte[] arg0) {
-			Log.v(TAG, "onBufferReceived");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-		}
-
-		@Override
-		public void onEndOfSpeech() {
-			Log.v(TAG, "onEndOfSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-			setBusy(true);
-		}
-
-		@Override
-		public void onError(int error) {
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-
-			String errorString = "";
-			if (error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT) {
-				errorString = "ERROR_NETWORK_TIMEOUT";
-			} else if (error == SpeechRecognizer.ERROR_AUDIO) {
-				errorString = "ERROR_AUDIO";
-				setBusy(false);
-			} else if (error == SpeechRecognizer.ERROR_CLIENT) {
-				errorString = "ERROR_CLIENT";
-			} else if (error == SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS) {
-				errorString = "ERROR_INSUFFICIENT_PERMISSIONS";
-			} else if (error == SpeechRecognizer.ERROR_NETWORK) {
-				errorString = "ERROR_NETWORK";
-			} else if (error == SpeechRecognizer.ERROR_NO_MATCH) {
-				errorString = "ERROR_NO_MATCH";
-				setBusy(false);
-			} else if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY) {
-				errorString = "ERROR_RECOGNIZER_BUSY";
-				cancelListener();
-			} else if (error == SpeechRecognizer.ERROR_SERVER) {
-				errorString = "ERROR_SERVER";
-			} else if (error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
-				errorString = "ERROR_SPEECH_TIMEOUT";
-			}
-			textView.setText("error:" + errorString);
-			Log.v(TAG, "onError:" + errorString);
-
-			startListening();
-
-		}
-
-		@Override
-		public void onEvent(int arg0, Bundle arg1) {
-			Log.v(TAG, "onEvent");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-		}
-
-		@Override
-		public void onPartialResults(Bundle arg0) {
-			Log.v(TAG, "onPartialResults");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-		}
-
-		@Override
-		public void onReadyForSpeech(Bundle arg0) {
-			Log.v(TAG, "onReadyForSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-			setBusy(false);
-
-		}
-
-		/**
-		 * This function is called when receiving a result
-		 */
-		@Override
-		public void onResults(Bundle results) {
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-			talked = false;
-			String str = new String();
-			Log.d(TAG, "onResults " + results);
-
-			/** For outputting text to UI **/
-			data = results
-					.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-			float[] scores = results
-					.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
-			for (int i = 0; i < data.size(); i++) {
-				Log.d(TAG,
-						"result "
-								+ data.get(i)
-								+ " = "
-								+ TrainerFunctions.getTrainer(data.get(i),
-										MainActivity.this, prefs) + scores[i]);
-				str += data.get(i)
-						+ " = "
-						+ TrainerFunctions.getTrainer(data.get(i),
-								MainActivity.this, prefs) + "\n";
-			}
-			textView.setText(str);
-
-			// If in active listening state (has said confirmation message)
-			if (audioFeedbackThread.getCurState() == audioFeedbackView.STATE_ACTIVE) {
-				audioFeedbackThread.refreshThresholdLine();
-				try {
-					if (REMOTE) {
-						/** sends messages to connected device **/
-						String trainedString = TrainerFunctions.getTrainer(
-								data.get(0), MainActivity.this, prefs);
-						sendMsg(trainedString, MSG_TYPE_COMMAND);
-						if (TrainerFunctions.isCommand(trainedString,
-								MainActivity.this))
-							playCommandAudioFeedback();
-					}
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-
-				// If said confirmation message
-			} else if (hasConfirmationString(CONFIRMATION_STRING, data)) {
-				playCommandAudioFeedback();
-				audioFeedbackThread.setState(audioFeedbackView.STATE_ACTIVE);
-				try {
-					if (REMOTE)
-						/** sends messages to connected device **/
-						sendMsg(TrainerFunctions.getTrainer(data.get(0),
-								MainActivity.this, prefs), MSG_TYPE_COMMAND);
-				} catch (JSONException e) {
-					e.printStackTrace();
-				}
-
-			} else {
-
-			}
-
-			startListening(); // loops again
-
-		}
-
-		/**
-		 * Checks ArrayList for a particular string
-		 * 
-		 * @param cmd
-		 *            string that we are looking for
-		 * @param data
-		 *            the ArrayList we are iterating through
-		 * @return true if the cmd string is found within the data ArrayList,
-		 *         false otherwise
-		 */
-		public boolean hasConfirmationString(String cmd, ArrayList<String> data) {
-			for (int i = 0; i < data.size(); i++) {
-				if (cmd.equals(data.get(i))
-						|| cmd.equals(TrainerFunctions.getTrainer(data.get(i),
-								MainActivity.this, prefs))) {
-					Log.v("confiramtion", "S");
-					return true;
-				}
-			}
-			return false;
-
-		}
-
-		@Override
-		public void onRmsChanged(float noise) {
-			Log.v(TAG, "onRmsChanged: " + noise);
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
-
-			// updateVisualizer(noise);
-
-			setAudioLevel(noise);
-
-			// Handles instances where the voice recognition doesn't call
-			// onBeginningOfSpeech
-			if (noise > 8) {
-				talked = true;
-			} else if (talked && noise < 4) {
-				if (silenceStart == 0) {
-					silenceStart = System.currentTimeMillis();
-				} else if (System.currentTimeMillis() - silenceStart > 500) {
-					silenceStart = 0;
-					talked = false;
-					speechRecognizer.stopListening();
-					setBusy(true);
-				}
-			} else {
-				silenceStart = 0;
-			}
-
-		}
-
-	};
-
-	/**
-	 * Tells the speech recognizer to start listening
-	 */
-	private void startListening() {
-
-		Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-		intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-				RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
-		intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,
-				"voice.recognition.test");
-		// intent.putExtra(RecognizerIntent.EXTRA_CONFIDENCE_SCORES, true);
-		// intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
-
-		speechRecognizer.startListening(intent);
-		Log.i("111111", "11111111");
-	}
-
-	/**
-	 * Tells the speech recognizer to cancel
-	 */
-	private void cancelListener() {
-		speechRecognizer.cancel();
-	}
-
-	/**
-	 * Workaround for when speechRecognizer.startListening doesn't do anything
-	 * 
-	 * 
-	 */
-	private void initSpeechRecognizerFreezeHandler() {
-
-		final Handler freezeHandler = new Handler();
-		Runnable freezeRunner = new Runnable() {
-			@Override
-			public void run() {
-				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime > 1000 &&
-					!audioFeedbackThread.getBusy() &&
-					mBoundService != null) {
-					setBusy(true);
-				}
-				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime > 5000) {
-					speechRecognizer.cancel();
-					startListening();
-					Log.v(TAG, "freezeHandler: recognizer died and restarted");
-
-				}
-				
-				freezeHandler.postDelayed(this, 1000);
-			}
-
-		};
-		freezeHandler.postDelayed(freezeRunner, 0);
-
-	}
 
 	// The activity is about to become visible.
 	@Override
@@ -458,11 +199,12 @@ public class MainActivity extends Activity {
 		// ConnectionService
 		if (dataUpdateReceiver == null)
 			dataUpdateReceiver = new DataUpdateReceiver();
-		IntentFilter intentFilter = new IntentFilter("connection");
+		IntentFilter intentFilter = new IntentFilter();
+		intentFilter.addAction("connection");
+		intentFilter.addAction("speech");
 		registerReceiver(dataUpdateReceiver, intentFilter);
-		startListening();
+		
 		audioFeedbackThread.unpause();
-		initSpeechRecognizerFreezeHandler();
 	}
 
 	@Override
@@ -471,7 +213,6 @@ public class MainActivity extends Activity {
 		Log.v(TAG, "onPause");
 		if (dataUpdateReceiver != null)
 			unregisterReceiver(dataUpdateReceiver);
-		speechRecognizer.cancel();
 		audioFeedbackThread.pause();
 	}
 
@@ -479,7 +220,6 @@ public class MainActivity extends Activity {
 	protected void onStop() {
 		super.onStop();
 		Log.v(TAG, "onStop");
-		speechRecognizer.destroy();
 		// The activity is no longer visible (it is now "stopped")
 	}
 
@@ -487,7 +227,8 @@ public class MainActivity extends Activity {
 	protected void onDestroy() {
 		super.onDestroy();
 		Log.v(TAG, "onDestroy");
-		doUnbindService();
+		doUnbindConnectionService();
+		doUnbindSpeechService();
 		// The activity is about to be destroyed.
 	}
 
@@ -514,6 +255,7 @@ public class MainActivity extends Activity {
 	public boolean onCreateOptionsMenu(Menu menu) {
 		Log.v(TAG, "menu create");
 		menu.add("Connect");
+		menu.add("AR Mode");
 		return true;
 	}
 
@@ -522,8 +264,16 @@ public class MainActivity extends Activity {
 	 * which starts the socket.
 	 */
 	public boolean onOptionsItemSelected(MenuItem item) {
-		startActivity(new Intent(this, ConnectionPopUp.class));
-
+		if (item.getTitle().equals("Connect"))
+			startActivity(new Intent(this, ConnectionPopUp.class));
+		else if (item.getTitle().equals("AR Mode")){
+			//showGUI = false;
+			//hideGUI();
+			startActivity(new Intent(this, Tutorial1.class));
+		}else if (item.getTitle().equals("Trainer Mode")){
+			//showGUI = true;
+			//showGUI();
+		}
 		return false;
 	}
 
@@ -533,59 +283,117 @@ public class MainActivity extends Activity {
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu) {
 		Log.v(TAG, "menu prepare");
+		if (showGUI)
+			menu.getItem(1).setTitle("AR Mode");
+		else
+			menu.getItem(1).setTitle("Trainer Mode");
 
 		super.onPrepareOptionsMenu(menu);
 		return true;
+	}
+	
+	/**
+	 * 
+	 */
+	private void hideGUI(){
+		RelativeLayout rl = (RelativeLayout) findViewById(R.id.cp1);
+		rl.setVisibility(View.GONE);
+		audioFeedbackThread.pause();
+	}
+	
+	/**
+	 * 
+	 */
+	private void showGUI(){
+		RelativeLayout rl = (RelativeLayout) findViewById(R.id.cp1);
+		rl.setVisibility(View.VISIBLE);
+		audioFeedbackThread.unpause();
 	}
 
 	/**
 	 * Declares service and connects
 	 */
-	private ServiceConnection mConnection = new ServiceConnection() {
+	private ServiceConnection mSpeechConnection = new ServiceConnection() {
 		public void onServiceConnected(ComponentName className, IBinder service) {
-			Log.v("TAG", "set mBoundService");
-			mBoundService = ((ConnectionService.LocalBinder) service)
+			Log.v(TAG, "set mBoundSpeechService");
+			mBoundSpeechService = ((SpeechRecognizerService.LocalBinder) service)
 					.getService();
-			if (!mBoundService.isConnected()) {
-				mBoundService.connect(ip_address);
+			if (!mBoundSpeechService.isConnected()) {
+				mBoundSpeechService.startService();
 			}
 		}
 
 		public void onServiceDisconnected(ComponentName className) {
-			mBoundService = null;
+			mBoundSpeechService = null;
 		}
 	};
+	
+	/**
+	 * Declares service and connects
+	 */
+	private ServiceConnection mConnectionConnection = new ServiceConnection() {
+		public void onServiceConnected(ComponentName className, IBinder service) {
+			Log.v(TAG, "set mBoundConnectionService");
+			mBoundConnectionService = ((ConnectionService.LocalBinder) service)
+					.getService();
+			if (!mBoundConnectionService.isConnected()) {
+				mBoundConnectionService.connect(ip_address);
+			}
+		}
+
+		public void onServiceDisconnected(ComponentName className) {
+			mBoundConnectionService = null;
+		}
+	};
+	
+
 
 	/**
 	 * Binds the service to the activity Allows access service
 	 * functions/variables available to binded activities. (See LocalBinder
-	 * class in ConnectionService for accessible functions)
+	 * class in service classes for accessible functions)
 	 */
-	private void doBindService() {
-		Log.v(TAG, "bind service");
+	private void doBindConnectionService() {
+		Log.v(TAG, "bind connection service");
 		bindService(new Intent(MainActivity.this, ConnectionService.class),
-				mConnection, Context.BIND_AUTO_CREATE);
-		mIsBound = true;
+				mConnectionConnection, Context.BIND_AUTO_CREATE);
+		mConnectionIsBound = true;
 	}
+	
+	private void doBindSpeechService() {
+		Log.v(TAG, "bind speech service");
+		bindService(new Intent(MainActivity.this, SpeechRecognizerService.class),
+				mSpeechConnection, Context.BIND_AUTO_CREATE);
+		mSpeechIsBound = true;
+	}
+
 
 	/**
 	 * Unbinds the service and activity
 	 */
-	private void doUnbindService() {
-		if (mIsBound) {
+	private void doUnbindConnectionService() {
+		if (mConnectionIsBound) {
 			Log.v(TAG, "unbind service");
 			// Detach our existing connection.
-			unbindService(mConnection);
-			mIsBound = false;
+			unbindService(mConnectionConnection);
+			mConnectionIsBound = false;
 		}
 	}
-
+	private void doUnbindSpeechService() {
+		if (mSpeechIsBound) {
+			Log.v(TAG, "unbind service");
+			// Detach our existing connection.
+			unbindService(mSpeechConnection);
+			mSpeechIsBound = false;
+		}
+	}
+	
 	/**
 	 * Returns whether or not the service is running
 	 * 
 	 * @return true if connection service is running, false otherwise
 	 */
-	private boolean isMyServiceRunning() {
+	private boolean isConnectionServiceRunning() {
 		ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
 		for (RunningServiceInfo service : manager
 				.getRunningServices(Integer.MAX_VALUE)) {
@@ -598,28 +406,22 @@ public class MainActivity extends Activity {
 	}
 
 	/**
-	 * Plays a beep sound
+	 * Returns whether or not the service is running
+	 * 
+	 * @return true if speech service is running, false otherwise
 	 */
-	private Handler mHandler = new Handler();
-
-	private void playCommandAudioFeedback() {
-		// mAudioManager.setStreamMute(AudioManager.STREAM_NOTIFICATION, false);
-
-		final ToneGenerator tg = new ToneGenerator(
-				AudioManager.STREAM_NOTIFICATION, 100);
-		tg.startTone(ToneGenerator.TONE_PROP_BEEP);
-
-		mHandler.postDelayed(new Runnable() {
-			public void run() {
-				tg.release();
-				return;
+	private boolean isSpeechServiceRunning() {
+		ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+		for (RunningServiceInfo service : manager
+				.getRunningServices(Integer.MAX_VALUE)) {
+			if (SpeechRecognizerService.class.getName().equals(
+					service.service.getClassName())) {
+				return true;
 			}
-		}, 200);
-
-		// mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-
+		}
+		return false;
 	}
-
+	
 	/**
 	 * Listens to broadcast messages
 	 */
@@ -627,8 +429,9 @@ public class MainActivity extends Activity {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			Log.v(TAG, "on receive");
+			Bundle b = intent.getExtras();
+
 			if (intent.getAction().equals("connection")) {
-				Bundle b = intent.getExtras();
 				String msg = b.getString("msg");
 				if (msg.equals("connected")) {
 					// if ConnectionService confirms that the connection
@@ -638,10 +441,74 @@ public class MainActivity extends Activity {
 						}
 					});
 				}
+				
 
+			}else if (intent.getAction().equals("speech")){
+				handleSpeechBroadcast(b);
 			}
 		}
 	}
+	
+	/**
+	 * Handles messages sent from speech recognizer service
+	 * 
+	 * @param b
+	 */
+	private void handleSpeechBroadcast(Bundle b){
+		String type = b.getString("type");
+		
+		if (type.equals(SpeechRecognizerService.MSG_TYPE_COMMAND_LIST)){
+			Bundle results = b.getBundle("results");
+			outputSpeechResults(results);
+			if (audioFeedbackThread.getCurState() == audioFeedbackView.STATE_ACTIVE)
+				audioFeedbackThread.refreshThresholdLine();
+			
+		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_BUSY)){
+			boolean busyState = Boolean.parseBoolean(b.getString("msg"));
+			audioFeedbackThread.setBusy(busyState);
+			audioFeedbackThread.refreshThresholdLine();
+		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_LEVEL)){
+			float rms = Float.parseFloat(b.getString("msg"));
+			audioFeedbackView.updateAudioFeedbackView(rms);
+		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_ERROR)){
+			String errorString = b.getString("msg");
+			textView.setText("error:" + errorString);
+			audioFeedbackThread.refreshThresholdLine();
+		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_STATE)){
+			int s = Integer.parseInt(b.getString("msg"));
+			audioFeedbackThread.setState(s);
+		}
+		
+	}
+	
+	private void outputSpeechResults(Bundle results){
+		String str = new String();
+
+		/** For outputting text to UI **/
+		data = results
+				.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+		
+		//if (mBoundSpeechService.hasConfirmationString(mBoundSpeechService.getConfirmationString(),data))
+		//	audioFeedbackThread.setState(audioFeedbackView.STATE_ACTIVE);
+
+		
+		float[] scores = results
+				.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
+		for (int i = 0; i < data.size(); i++) {
+			Log.d(TAG,
+					"result "
+							+ data.get(i)
+							+ " = "
+							+ TrainerFunctions.getTrainer(data.get(i),
+									MainActivity.this, prefs) + scores[i]);
+			str += data.get(i)
+					+ " = "
+					+ TrainerFunctions.getTrainer(data.get(i),
+							MainActivity.this, prefs) + "\n";
+		}
+		textView.setText(str);
+	}
+	
 
 	/**
 	 * Call this function to send a command to the Moverio
@@ -650,6 +517,7 @@ public class MainActivity extends Activity {
 	 * @return true if message was sent; false otherwise
 	 * @throws JSONException
 	 */
+	/*
 	private boolean sendMsg(String msg, String type) throws JSONException {
 		long curActionTime = System.currentTimeMillis();
 		JSONObject j = new JSONObject();
@@ -677,7 +545,8 @@ public class MainActivity extends Activity {
 		lastActionTime = curActionTime;
 		return true;
 	}
-
+*/
+	/*
 	private void setBusy(boolean busy) {
 		audioFeedbackThread.setBusy(busy);
 
@@ -689,13 +558,13 @@ public class MainActivity extends Activity {
 			}
 		}
 	}
-
+*/
 	/**
 	 * Sets audio feedback level
 	 * 
 	 * @param rms
 	 */
-	private void setAudioLevel(float rms) {
+	/*private void setAudioLevel(float rms) {
 		if (REMOTE) {
 			try {
 				sendMsg("" + rms, MSG_TYPE_AUDIO_LEVEL);
@@ -706,5 +575,5 @@ public class MainActivity extends Activity {
 		}
 
 	}
-
+*/
 }

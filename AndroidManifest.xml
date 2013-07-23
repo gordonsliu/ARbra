@@ -2,7 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="edu.cmu.hcii.novo.arbra"
     android:versionCode="1"
-    android:versionName="1.0" >
+    android:versionName="1.0"
+    android:installLocation="preferExternal" >
 
     <uses-sdk
         android:minSdkVersion="8"
@@ -13,7 +14,8 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+        android:theme="@style/AppTheme" 
+        >
         <activity
             android:name="edu.cmu.hcii.novo.arbra.MainActivity"
             android:label="@string/app_name" >
@@ -28,9 +30,16 @@
             android:name="ConnectionPopUp"
             android:theme="@android:style/Theme.Dialog"/>
         <service android:name=".ConnectionService" />
+        <service android:name=".SpeechRecognizerService" />
+        
+        <activity
+            android:name=".Tutorial1">
+        </activity>
         
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    
 </manifest>

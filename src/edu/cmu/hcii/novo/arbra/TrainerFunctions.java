@@ -13,17 +13,16 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -77,11 +76,12 @@ public class TrainerFunctions {
      * @param word 
      * @return the command that the word is associated with
      */
-    public static String getTrainer(String word, Activity act, SharedPreferences prefs){
-    	Spinner spinner = (Spinner) act.findViewById(R.id.commands);
-    	Adapter adapter = spinner.getAdapter();
-    	for (int i = 0; i < adapter.getCount(); i++){
-    		if (adapter.getItem(i).equals(word))
+    public static String getTrainer(String word, Context ctx, SharedPreferences prefs){
+    	String[] commandsArray = ctx.getResources().getStringArray(R.array.commands);
+    	
+   	    
+    	for (int i = 0; i < commandsArray.length; i++){
+    		if (commandsArray[i].equals(word))
     			return word;
     	}
     	
@@ -89,7 +89,7 @@ public class TrainerFunctions {
     	if (!result.equals("none")){
     		return result;
     	}else{
-	    	Toast.makeText(act, "Word not in database = "+ word, Toast.LENGTH_LONG).show();
+	    	//Toast.makeText(act, "Word not in database = "+ word, Toast.LENGTH_LONG).show();
 	    	return word;
     	}
     }
@@ -102,12 +102,11 @@ public class TrainerFunctions {
      * @param act
      * @return true if the word is a command, false otherwise
      */
-    public static boolean isCommand(String word, Activity act){
-    	Spinner spinner = (Spinner) act.findViewById(R.id.commands);
-    	Adapter adapter = spinner.getAdapter();
+    public static boolean isCommand(String word, Context ctx){
+   	    String[] commandsArray = ctx.getResources().getStringArray(R.array.commands);
     
-    	for (int i = 0; i < adapter.getCount(); i++){
-    		if (adapter.getItem(i).equals(word))
+    	for (int i = 0; i < commandsArray.length; i++){
+    		if (commandsArray[i].equals(word))
     			return true;
     	}
     	
@@ -243,7 +242,7 @@ public class TrainerFunctions {
 		    bw.close();
 		    fw.close();	
 		    
-	    	Toast.makeText(act, "Done writing SD ", Toast.LENGTH_LONG).show();
+	    	//Toast.makeText(act, "Done writing SD ", Toast.LENGTH_LONG).show();
 
     	} catch (Exception e) {
 			Toast.makeText(act, e.getMessage(), Toast.LENGTH_SHORT).show();
