@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
 
 			@Override
 			public void onClick(View arg0) {
-				//cancelListener();
+				mBoundSpeechService.cancelListener();
 			}
 
 		});
@@ -149,6 +149,9 @@ public class MainActivity extends Activity {
 
 	}
 
+	/**
+	 * Initializes buttons for changing audio feedback visualizer type
+	 */
 	private void initAudioFeedbackButton() {
 		Button b = (Button) findViewById(R.id.audioFeedbackButton);
 		b.setOnClickListener(new OnClickListener() {
@@ -462,6 +465,10 @@ public class MainActivity extends Activity {
 		
 	}
 	
+	/**
+	 * Prints results from speech recognizer onto GUI TextView	
+	 * @param results
+	 */
 	private void outputSpeechResults(Bundle results){
 		String str = new String();
 
@@ -469,9 +476,6 @@ public class MainActivity extends Activity {
 		data = results
 				.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
 		
-		//if (mBoundSpeechService.hasConfirmationString(mBoundSpeechService.getConfirmationString(),data))
-		//	audioFeedbackThread.setState(audioFeedbackView.STATE_ACTIVE);
-
 		
 		float[] scores = results
 				.getFloatArray(SpeechRecognizer.CONFIDENCE_SCORES);
@@ -491,70 +495,4 @@ public class MainActivity extends Activity {
 	}
 	
 
-	/**
-	 * Call this function to send a command to the Moverio
-	 * 
-	 * @param msg
-	 * @return true if message was sent; false otherwise
-	 * @throws JSONException
-	 */
-	/*
-	private boolean sendMsg(String msg, String type) throws JSONException {
-		long curActionTime = System.currentTimeMillis();
-		JSONObject j = new JSONObject();
-		msg = msg.toLowerCase();
-
-		j.put("type", type);
-		j.put("content", msg);
-
-		// to prevent "spamming" of control panel commands
-
-		if (type == MSG_TYPE_AUDIO_LEVEL) {
-			// if (Float.parseFloat(msg) <
-			// audioFeedbackThread.MINIMUM_RMS_REFRESH){
-			if (curActionTime - lastActionTime < MIN_ACTION_TIME) {
-				// Log.v("action time filter", "skip");
-				return false;
-			}
-			// }
-			audioFeedbackView.updateAudioFeedbackView(Float.parseFloat(msg));
-
-		}
-
-		mBoundService.sendMsg(j.toString());
-		Log.v("action time filter", "sent: " + j.toString());
-		lastActionTime = curActionTime;
-		return true;
-	}
-*/
-	/*
-	private void setBusy(boolean busy) {
-		audioFeedbackThread.setBusy(busy);
-
-		if (REMOTE) {
-			try {
-				sendMsg(busy + "", MSG_TYPE_AUDIO_BUSY);
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-*/
-	/**
-	 * Sets audio feedback level
-	 * 
-	 * @param rms
-	 */
-	/*private void setAudioLevel(float rms) {
-		if (REMOTE) {
-			try {
-				sendMsg("" + rms, MSG_TYPE_AUDIO_LEVEL);
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-
-		}
-
-	}
-*/
 }

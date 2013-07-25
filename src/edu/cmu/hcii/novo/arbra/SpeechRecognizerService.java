@@ -19,7 +19,8 @@ import android.util.Log;
 
 public class SpeechRecognizerService extends Service {
 	private static String TAG = "SpeechRecognizerService";
-	
+	private boolean serviceStarted = false;
+
 	/* Binder for activities to access functions */
 	private final IBinder myBinder = new LocalBinder();
 	
@@ -28,6 +29,7 @@ public class SpeechRecognizerService extends Service {
 	public static long COMMANDS_TIMEOUT_DURATION = 4000; // in millesconds
 	public long lastRefreshTime;
 	
+	/* Variables that handle the speech recognizer state */
 	public int STATE_INACTIVE = 0;
 	public int STATE_ACTIVE = 1;
     private int state = STATE_INACTIVE;
@@ -42,35 +44,29 @@ public class SpeechRecognizerService extends Service {
 	public static String MSG_TYPE_AUDIO_ERROR = "audioError";
 	public static String MSG_TYPE_AUDIO_STATE = "audioState";
 	public static String MSG_TYPE_COMMAND_LIST = "commandList";
-
 	
 	/* For handling confirmation string */
 	private String CONFIRMATION_STRING = "ready";
 	
 	/* Speech recognition */
 	private SpeechRecognizer speechRecognizer;
-	private long lastSpeechRecognizerActionTime;
+	private long lastSpeechRecognizerActionTime; // for recovering from startListening() not working & other crashes
 
-	/*
-	 * For handling occasions where speechRecognizer doesn't not call
-	 * onBeginningOfSpeech
-	 */
+	/* For handling occasions where speechRecognizer doesn't not call onBeginningOfSpeech */
 	private long silenceStart;
 	private boolean talked = false;
 	
-	/** To prevent "spamming" of onRmsChanged: **/
+	/* To prevent "spamming" of onRmsChanged: */
 	public long lastActionTime = 0; // the time of the last message sent.
 	private static int MIN_ACTION_TIME = 150; // the minimum amount of time (ms)
 												// that must pass before another
 												// voice rms update is sent
 	
-	/** Dictionary trainer data storage **/
+	/* Dictionary trainer data storage */
 	public static final String PREFS_NAME = "ARbraPrefs";
 	SharedPreferences prefs;
 
-	private boolean serviceStarted = false;
-	
-	/** For muting Jellybean's audio feedback for SpeechRecognizer **/
+	/* For muting Jellybean's audio feedback for SpeechRecognizer */
 	private AudioManager mAudioManager;
 	
 	
@@ -100,8 +96,8 @@ public class SpeechRecognizerService extends Service {
     public class LocalBinder extends Binder {
         
     	/**
-         * Getter function for ConnectionService
-         * @return ConnectionService
+         * Getter function for SpeechRecognizerService
+         * @return SpeechRecognizerService
          */
     	public SpeechRecognizerService getService() {
             return SpeechRecognizerService.this;
@@ -136,16 +132,24 @@ public class SpeechRecognizerService extends Service {
         
     }
     
+    /**
+     * @return the confirmation string for speech recognition
+     */
     public String getConfirmationString(){
     	return CONFIRMATION_STRING;
     }
-    
+ 
+    /**
+     * @return true if the service has started
+     */
     public boolean isConnected(){
     	Log.v(TAG,"isConnected");
-
     	return serviceStarted;
     }
     
+    /**
+     * Initializes everything necessary for starting the speech recognizer and begins
+     */
     public void startService(){
     	Log.v(TAG,"startService");
     	SpeechRecognizerService.this.initSpeechRecognizer();
@@ -170,6 +174,10 @@ public class SpeechRecognizerService extends Service {
 	 */
 	private RecognitionListener recognitionListener = new RecognitionListener() {
 
+		/**
+		 * For handling startListening() not working & other crashes
+		 * These timers are checked periodically to ensure that we still listening for speech commands
+		 */
 		public void refreshTimers(){
 			speechOn = true;
 			lastSpeechRecognizerActionTime = System.currentTimeMillis();
@@ -295,11 +303,9 @@ public class SpeechRecognizerService extends Service {
 			Log.v(TAG, "onRmsChanged: " + noise);
 			refreshTimers();
 			
-			
 			sendAudioLevel(noise);
 
-			// Handles instances where the voice recognition doesn't call
-			// onBeginningOfSpeech
+			/* Handles instances where the voice recognition doesn't call onBeginningOfSpeech */
 			if (noise > 8) {
 				talked = true;
 			} else if (talked && noise < 4) {
@@ -364,7 +370,7 @@ public class SpeechRecognizerService extends Service {
 	/**
 	 * Tells the speech recognizer to cancel
 	 */
-	private void cancelListener() {
+	public void cancelListener() {
 		speechRecognizer.cancel();
 	}
 
@@ -384,7 +390,6 @@ public class SpeechRecognizerService extends Service {
 					sendBusy(true);
 				}
 				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 500 && !speechOn) {
-					speechRecognizer.cancel();
 					startListening();
 					Log.v(TAG, "freezeHandler: startListening failed");
 
@@ -494,6 +499,11 @@ public class SpeechRecognizerService extends Service {
 		sendBroadcastMsg(error,MSG_TYPE_AUDIO_ERROR);
 	}
 	
+	/**
+	 * Sends broadcast message describing change in state
+	 * 
+	 * @param s current state
+	 */
 	private void sendState(int s){
 		state = s;
 		sendBroadcastMsg(""+s,MSG_TYPE_AUDIO_STATE);

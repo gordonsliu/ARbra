@@ -528,7 +528,8 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 	@Override
 	public void surfaceChanged(SurfaceHolder arg0, int format, int width, int height) {
         thread.setSurfaceSize(width, height);
-		
+    	Log.v("setSurfaceSize","viewWidth,viewHeight "+width+","+height);
+
 	}
 
 	@Override
