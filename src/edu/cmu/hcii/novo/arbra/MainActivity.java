@@ -206,6 +206,7 @@ public class MainActivity extends Activity {
 		registerReceiver(dataUpdateReceiver, intentFilter);
 
 		audioFeedbackThread.unpause();
+		
 	}
 
 	@Override
@@ -215,6 +216,8 @@ public class MainActivity extends Activity {
 		if (dataUpdateReceiver != null)
 			unregisterReceiver(dataUpdateReceiver);
 		audioFeedbackThread.pause();
+		
+		
 	}
 
 	@Override
@@ -467,14 +470,13 @@ public class MainActivity extends Activity {
 		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_BUSY)){
 			boolean busyState = Boolean.parseBoolean(b.getString("msg"));
 			audioFeedbackThread.setBusy(busyState);
-			audioFeedbackThread.refreshThresholdLine();
 		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_LEVEL)){
 			float rms = Float.parseFloat(b.getString("msg"));
 			audioFeedbackView.updateAudioFeedbackView(rms);
 		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_ERROR)){
 			String errorString = b.getString("msg");
 			textView.setText("error:" + errorString);
-			audioFeedbackThread.refreshThresholdLine();
+			//audioFeedbackThread.refreshThresholdLine();
 		}else if (type.equals(SpeechRecognizerService.MSG_TYPE_AUDIO_STATE)){
 			int s = Integer.parseInt(b.getString("msg"));
 			audioFeedbackThread.setState(s);

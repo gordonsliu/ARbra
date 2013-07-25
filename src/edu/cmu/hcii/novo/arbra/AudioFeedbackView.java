@@ -3,8 +3,6 @@ package edu.cmu.hcii.novo.arbra;
 import java.util.Random;
 
 import android.content.Context;
-import android.graphics.BlurMaskFilter;
-import android.graphics.BlurMaskFilter.Blur;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -50,16 +48,15 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
         private SurfaceHolder mSurfaceHolder;
 
         /** Indicate whether the surface has been created & is ready to draw */
-        private boolean mRun = false;
+        private volatile boolean mRun = false;
         
-        private int state = STATE_INACTIVE;
         private boolean paused = false;
         
         public AudioFeedbackThread(SurfaceHolder surfaceHolder, Context context) {
             // get handles to some important objects
             mSurfaceHolder = surfaceHolder;
             mContext = context;
-            init();
+            
         }
         
         
@@ -70,11 +67,8 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
                 try {
                     c = mSurfaceHolder.lockCanvas(null);
                     synchronized (mSurfaceHolder) {
-                        //if (mMode == STATE_RUNNING) updatePhysics();
                         if (!paused)
                         	doDraw(c);
-                        //else
-                        //	paused = false;
                     }
                 } finally {
                     // do this in a finally so that if an exception is thrown
@@ -104,12 +98,12 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
          * @param s current state
          */
         public void setState(int s){
-        	synchronized (mSurfaceHolder){
+        	//synchronized (mSurfaceHolder){
 	        	state = s;
 	        	if (state == STATE_ACTIVE){
 	        		refreshThresholdLine();
 	        	}
-        	}
+        	//}
         }
         
         /**
@@ -125,10 +119,9 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
          * Sets time for last received message (used to calculate y-coordinate of threshold line)
          */
         public void refreshThresholdLine(){
-        	synchronized (mSurfaceHolder){
-	    		levelThreshold = viewHeight;
-	    		lastMessageTime = System.currentTimeMillis();
-        	}
+	    	levelThreshold = viewHeight;
+	    	lastMessageTime = System.currentTimeMillis();
+        	
         }
         
     	/**
@@ -137,7 +130,10 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
     	 * @param busyState
     	 */
     	public void setBusy(boolean busyState){
-    		busy = busyState;
+    		//synchronized (mSurfaceHolder){
+    			busy = busyState;
+    			refreshThresholdLine();
+    		//}
     	}
     	
     	/**
@@ -153,6 +149,8 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
          * @param c
          */
 		private void doDraw(Canvas c) {
+			if (c==null)
+				return;
 			c.drawColor(Color.BLACK);
 			//Log.v("hello","hello");
 			
@@ -199,10 +197,11 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
         public void setSurfaceSize(int width, int height) {
             // synchronized to make sure these all change atomically
             synchronized (mSurfaceHolder) {
-                //viewWidth = width;
-                //viewHeight = height;
-
-               // Log.v("viewWidth,viewHeight",width+","+height);
+                viewWidth = width;
+                viewHeight = height;
+            	init();
+               
+            	Log.v("setSurfaceSize","viewWidth,viewHeight "+width+","+height);
             }
         }
         
@@ -477,21 +476,24 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 	public int STATE_INACTIVE = 0;
 	public int STATE_ACTIVE = 1;
 	public boolean busy = false;
-	
+    private int state = STATE_INACTIVE;
+
     /** The thread that actually draws the animation */
     private AudioFeedbackThread thread;
     /** Handle to the application context, used to e.g. fetch Drawables. */
     private Context mContext;
+    private SurfaceHolder mHolder;
+    private boolean threadClosed = false;
     
 	public AudioFeedbackView(Context context, AttributeSet attrs) {
 		super(context, attrs);
         // register our interest in hearing about changes to our surface
-        SurfaceHolder holder = getHolder();
-        holder.addCallback(this);
+		mHolder = getHolder();
+		mHolder.addCallback(this);
         mContext = context;
         
         // create thread only; it's started in surfaceCreated()
-        thread = new AudioFeedbackThread(holder, context);
+        thread = new AudioFeedbackThread(mHolder, mContext);
 
         setFocusable(true); // make sure we get key events
 	}
@@ -533,6 +535,8 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
 	public void surfaceCreated(SurfaceHolder arg0) {
         // start the thread here so that we don't busy-wait in run()
         // waiting for the surface to be created
+		if (threadClosed)
+			thread = new AudioFeedbackThread(mHolder, mContext);
 		thread.setRunning(true);
         thread.start();
 	}
@@ -547,6 +551,7 @@ public class AudioFeedbackView extends SurfaceView implements SurfaceHolder.Call
             try {
                 thread.join();
                 retry = false;
+                threadClosed = true;
             } catch (InterruptedException e) {
             }
         }		

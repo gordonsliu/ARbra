@@ -126,6 +126,14 @@ public class SpeechRecognizerService extends Service {
         	return SpeechRecognizerService.this.getConfirmationString();
         }
         
+        public void cancelListener(){
+        	SpeechRecognizerService.this.cancelListener();
+        }
+        
+        public void startListening(){
+        	SpeechRecognizerService.this.startListening();
+        }
+        
     }
     
     public String getConfirmationString(){
@@ -371,7 +379,7 @@ public class SpeechRecognizerService extends Service {
 		Runnable freezeRunner = new Runnable() {
 			@Override
 			public void run() {
-				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 200 &&
+				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 1000 &&
 					!busy){
 					sendBusy(true);
 				}
@@ -450,6 +458,8 @@ public class SpeechRecognizerService extends Service {
 	 * @param busy
 	 */
 	private void sendBusy(boolean busy){
+		if (state == STATE_ACTIVE)
+			lastRefreshTime = System.currentTimeMillis();	
 		sendBroadcastMsg(""+busy,MSG_TYPE_AUDIO_BUSY);
 	}
 	
