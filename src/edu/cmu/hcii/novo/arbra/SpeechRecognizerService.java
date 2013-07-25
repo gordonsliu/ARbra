@@ -1,6 +1,7 @@
 package edu.cmu.hcii.novo.arbra;
 
 import java.util.ArrayList;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -31,7 +32,8 @@ public class SpeechRecognizerService extends Service {
 	public int STATE_ACTIVE = 1;
     private int state = STATE_INACTIVE;
 	public boolean busy = false;
-
+	private boolean speechOn = false;
+	
 	/* Name of commands sent to ConnectionService and MainActivity */
 	public static String MSG_TYPE_COMMAND = "command";
 	public static String MSG_TYPE_AUDIO_LEVEL = "audioLevel";
@@ -160,22 +162,27 @@ public class SpeechRecognizerService extends Service {
 	 */
 	private RecognitionListener recognitionListener = new RecognitionListener() {
 
+		public void refreshTimers(){
+			speechOn = true;
+			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+		}
+		
 		@Override
 		public void onBeginningOfSpeech() {
 			Log.v(TAG, "onBeginningOfSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 		}
 
 		@Override
 		public void onBufferReceived(byte[] arg0) {
 			Log.v(TAG, "onBufferReceived");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 		}
 
 		@Override
 		public void onEndOfSpeech() {
 			Log.v(TAG, "onEndOfSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 			sendBusy(true);
 			if (state == STATE_ACTIVE)
 				lastRefreshTime = System.currentTimeMillis();	
@@ -183,7 +190,7 @@ public class SpeechRecognizerService extends Service {
 
 		@Override
 		public void onError(int error) {
-			lastRefreshTime = System.currentTimeMillis();
+			refreshTimers();
 			
 			String errorString = "";
 			if (error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT) {
@@ -218,19 +225,19 @@ public class SpeechRecognizerService extends Service {
 		@Override
 		public void onEvent(int arg0, Bundle arg1) {
 			Log.v(TAG, "onEvent");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 		}
 
 		@Override
 		public void onPartialResults(Bundle arg0) {
 			Log.v(TAG, "onPartialResults");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 		}
 
 		@Override
 		public void onReadyForSpeech(Bundle arg0) {
 			Log.v(TAG, "onReadyForSpeech");
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 			sendBusy(false);
 
 		}
@@ -240,7 +247,7 @@ public class SpeechRecognizerService extends Service {
 		 */
 		@Override
 		public void onResults(Bundle results) {
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 			talked = false;
 			Log.d(TAG, "onResults " + results);
 
@@ -278,7 +285,7 @@ public class SpeechRecognizerService extends Service {
 		@Override
 		public void onRmsChanged(float noise) {
 			Log.v(TAG, "onRmsChanged: " + noise);
-			lastSpeechRecognizerActionTime = System.currentTimeMillis();
+			refreshTimers();
 			
 			
 			sendAudioLevel(noise);
@@ -332,7 +339,8 @@ public class SpeechRecognizerService extends Service {
 	 * Tells the speech recognizer to start listening
 	 */
 	private void startListening() {
-
+		speechOn = false;
+		
 		Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
 		intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
 				RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH);
@@ -363,18 +371,22 @@ public class SpeechRecognizerService extends Service {
 		Runnable freezeRunner = new Runnable() {
 			@Override
 			public void run() {
-				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime > 1000 &&
+				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 200 &&
 					!busy){
 					sendBusy(true);
 				}
-				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime > 5000) {
+				if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 500 && !speechOn) {
+					speechRecognizer.cancel();
+					startListening();
+					Log.v(TAG, "freezeHandler: startListening failed");
+
+				}else if (System.currentTimeMillis() - lastSpeechRecognizerActionTime >= 4000 && speechOn) {
 					speechRecognizer.cancel();
 					startListening();
 					Log.v(TAG, "freezeHandler: recognizer died and restarted");
-
 				}
 				
-				freezeHandler.postDelayed(this, 1000);
+				freezeHandler.postDelayed(this, 500);
 			}
 
 		};
@@ -388,10 +400,9 @@ public class SpeechRecognizerService extends Service {
 	private Handler mHandler = new Handler();
 
 	private void playCommandAudioFeedback() {
-		// mAudioManager.setStreamMute(AudioManager.STREAM_NOTIFICATION, false);
 
 		final ToneGenerator tg = new ToneGenerator(
-				AudioManager.STREAM_NOTIFICATION, 100);
+				AudioManager.STREAM_ALARM, 100);
 		tg.startTone(ToneGenerator.TONE_PROP_BEEP);
 
 		mHandler.postDelayed(new Runnable() {
@@ -401,8 +412,7 @@ public class SpeechRecognizerService extends Service {
 			}
 		}, 200);
 
-		// mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
-
+		
 	}
 	
 

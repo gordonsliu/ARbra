@@ -118,7 +118,8 @@ public class MainActivity extends Activity {
 		initAudioFeedbackButton();
 
 		mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-		mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+		//mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
+		mAudioManager.setStreamSolo(AudioManager.STREAM_NOTIFICATION, true);
 
 	}
 
@@ -203,7 +204,7 @@ public class MainActivity extends Activity {
 		intentFilter.addAction("connection");
 		intentFilter.addAction("speech");
 		registerReceiver(dataUpdateReceiver, intentFilter);
-		
+
 		audioFeedbackThread.unpause();
 	}
 
