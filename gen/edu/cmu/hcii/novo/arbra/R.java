@@ -65,11 +65,12 @@ public final class R {
         public static final int button_web_forward=0x7f020020;
         public static final int button_web_reload=0x7f020021;
         public static final int button_web_stop=0x7f020022;
-        public static final int ic_launcher=0x7f020023;
-        public static final int icon_placeholder=0x7f020024;
-        public static final int poi_background=0x7f020025;
-        public static final int poi_background_ad=0x7f020026;
-        public static final int toastbackground=0x7f020027;
+        public static final int cancel=0x7f020023;
+        public static final int ic_launcher=0x7f020024;
+        public static final int icon_placeholder=0x7f020025;
+        public static final int poi_background=0x7f020026;
+        public static final int poi_background_ad=0x7f020027;
+        public static final int toastbackground=0x7f020028;
     }
     public static final class id {
         public static final int Back=0x7f06000e;
@@ -82,7 +83,7 @@ public final class R {
         public static final int actionButtonContainer=0x7f060022;
         public static final int audioButton=0x7f060002;
         public static final int audioFeedbackButton=0x7f060011;
-        public static final int button1=0x7f060026;
+        public static final int button1=0x7f060024;
         public static final int buttonClose=0x7f06002e;
         public static final int buttonWebBack=0x7f06002a;
         public static final int buttonWebForward=0x7f06002d;
@@ -100,7 +101,7 @@ public final class R {
         public static final int imagePointer=0x7f06001c;
         public static final int layoutPOILocation=0x7f06001b;
         public static final int layoutRotated=0x7f060018;
-        public static final int layoutToast=0x7f060024;
+        public static final int layoutToast=0x7f060025;
         public static final int menu_settings=0x7f06002f;
         public static final int popup_element=0x7f060007;
         public static final int progressBar=0x7f060028;
@@ -112,7 +113,7 @@ public final class R {
         public static final int textPOIDescription=0x7f060020;
         public static final int textPOILocation=0x7f06001d;
         public static final int textPOIName=0x7f06001a;
-        public static final int textToast=0x7f060025;
+        public static final int textToast=0x7f060026;
         public static final int textView=0x7f060013;
         public static final int trainButton=0x7f060010;
         public static final int videoButton=0x7f060003;
@@ -128,8 +129,8 @@ public final class R {
         public static final int control_panel=0x7f030003;
         public static final int listitem=0x7f030004;
         public static final int poidetaildialog=0x7f030005;
-        public static final int toast=0x7f030006;
-        public static final int tutorial1=0x7f030007;
+        public static final int template=0x7f030006;
+        public static final int toast=0x7f030007;
         public static final int webview=0x7f030008;
         public static final int webviewnav=0x7f030009;
     }

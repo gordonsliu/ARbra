@@ -254,7 +254,7 @@ public class MainActivity extends Activity {
 		else if (item.getTitle().equals("AR Mode")){
 			//showGUI = false;
 			//hideGUI();
-			startActivity(new Intent(this, Tutorial1.class));
+			startActivity(new Intent(this, ARMode.class));
 		}else if (item.getTitle().equals("Trainer Mode")){
 			//showGUI = true;
 			//showGUI();

@@ -33,7 +33,7 @@
         <service android:name=".SpeechRecognizerService" />
         
         <activity
-            android:name=".Tutorial1">
+            android:name=".ARMode">
         </activity>
         
     </application>
