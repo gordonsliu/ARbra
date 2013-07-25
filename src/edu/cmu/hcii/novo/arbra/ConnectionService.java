@@ -153,6 +153,14 @@ public class ConnectionService extends Service {
 						e.printStackTrace();
 					}
 				}
+			} else if (intent.getAction().equals("ar")) {
+				if (b.getString("type").equals(ARMode.MSG_TYPE_READ)) {
+					try {					
+						sendMoverioMsg(b.getString("msg"), b.getString("type"));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 		}
 	}

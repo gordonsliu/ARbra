@@ -4,6 +4,7 @@ package edu.cmu.hcii.novo.arbra;
 import java.util.HashMap;
 import java.util.Map;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -23,6 +24,8 @@ import com.metaio.tools.io.AssetsManager;
 
 public class ARMode extends ARViewActivity {
 	private static final String TAG = "RecordData";
+	
+	public static final String MSG_TYPE_READ = "readObject";
 	
 	private MetaioSDKCallbackHandler mCallbackHandler;
 	private Map<String, String> idValues;
@@ -73,6 +76,7 @@ public class ARMode extends ARViewActivity {
 					
 					if (idValues.containsKey(pose.getCosName())) {
 						Log.i(TAG, "SENDING VAlUE OF " + idValues.get(pose.getCosName()));
+						sendBroadcastMsg(idValues.get(pose.getCosName()));
 					}
 					
 				} else if (pose.getState() == ETRACKING_STATE.ETS_LOST) {
@@ -93,7 +97,6 @@ public class ARMode extends ARViewActivity {
 	protected void loadContents() {
 		Log.i(TAG, "Loading contents");
 		try	{
-			
 			// Getting a file path for tracking configuration XML file
 			String trackingConfigFile = AssetsManager.getAssetPath("Tracking/TrackingData_MarkerlessFast.xml");
 			
@@ -104,6 +107,7 @@ public class ARMode extends ARViewActivity {
 			
 			String idPath = AssetsManager.getAssetPath("Tracking/" + idMovie);
 			String swabPath = AssetsManager.getAssetPath("Tracking/" + swabMovie);
+			
 			if (idPath != null && swabPath != null) {
 				
 				for (String key : idValues.keySet()) {
@@ -136,7 +140,7 @@ public class ARMode extends ARViewActivity {
 			
 		}       
 		catch (Exception e)	{
-			
+			Log.e(TAG, "Error loading contents", e);
 		}
 	}
 	
@@ -224,4 +228,15 @@ public class ARMode extends ARViewActivity {
 
 	}
 	
+	
+	/**
+	 * Sends a broadcast message to be read by other classes
+	 * @param msg the string to be sent
+	 */
+	private void sendBroadcastMsg(String msg){
+        Intent intent = new Intent("ar");
+        intent.putExtra("type", MSG_TYPE_READ);
+        intent.putExtra("msg", msg);
+        sendBroadcast(intent);
+	}
 }
