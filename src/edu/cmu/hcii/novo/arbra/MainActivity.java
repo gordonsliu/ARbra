@@ -33,12 +33,9 @@ public class MainActivity extends Activity {
 
 	private DataUpdateReceiver dataUpdateReceiver;
 	private static final String TAG = "MainActivity_client"; // used for logging
-																// purposes
-
+								
 	private boolean showGUI = true;
 	
-	private MainApp MainApp;
-
 	/** Dictionary trainer & IP address data storage **/
 	public static final String PREFS_NAME = "ARbraPrefs";
 	SharedPreferences prefs;
@@ -48,9 +45,6 @@ public class MainActivity extends Activity {
 	/** ConnectionService **/
 	private ConnectionService mBoundConnectionService;
 	private boolean mConnectionIsBound;
-	private static String MSG_TYPE_COMMAND = "command";
-	private static String MSG_TYPE_AUDIO_LEVEL = "audioLevel";
-	private static String MSG_TYPE_AUDIO_BUSY = "audioBusy";
 
 	/** Speech Recognizer Service **/
 	private SpeechRecognizerService mBoundSpeechService;
@@ -61,23 +55,10 @@ public class MainActivity extends Activity {
 	//private SpeechRecognizer speechRecognizer;
 	private TextView textView;
 	private ArrayList<String> data; // current results
-	private long lastSpeechRecognizerActionTime;
-
-	/*
-	 * For handling occasions where speechRecognizer doesn't not call
-	 * onBeginningOfSpeech
-	 */
-	private long silenceStart;
-	private boolean talked = false;
-
-	/* For handling confirmation string */
-	// private boolean confirm = false;
-	private String CONFIRMATION_STRING = "ready";
 
 	/** Audio feedback visualizer **/
 	private AudioFeedbackView audioFeedbackView;
 	private AudioFeedbackThread audioFeedbackThread;
-	private static boolean REMOTE = true; // if we are only working with local audiofeedbackview
 
 	/** For muting Jellybean's audio feedback for SpeechRecognizer **/
 	private AudioManager mAudioManager;
@@ -91,9 +72,6 @@ public class MainActivity extends Activity {
 		
 		setContentView(R.layout.control_panel);
 		Log.v(TAG, "onCreate");
-
-		// to view variables stored in MainApp
-		MainApp = (MainApp) MainActivity.this.getApplication();
 
 		// to begin ConnectionService (connection to Moverio)
 		if (!isSpeechServiceRunning())
