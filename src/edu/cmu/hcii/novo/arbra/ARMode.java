@@ -25,7 +25,7 @@ import com.metaio.tools.io.AssetsManager;
 public class ARMode extends ARViewActivity {
 	private static final String TAG = "RecordData";
 	
-	public static final String MSG_TYPE_READ = "readObject";
+	public static final String MSG_TYPE_AR_READ = "readObject";
 	
 	private MetaioSDKCallbackHandler mCallbackHandler;
 	private Map<String, String> idValues;
@@ -235,7 +235,7 @@ public class ARMode extends ARViewActivity {
 	 */
 	private void sendBroadcastMsg(String msg){
         Intent intent = new Intent("ar");
-        intent.putExtra("type", MSG_TYPE_READ);
+        intent.putExtra("type", MSG_TYPE_AR_READ);
         intent.putExtra("msg", msg);
         sendBroadcast(intent);
 	}
