@@ -58,7 +58,7 @@ public class SpeechRecognizerService extends Service {
 	
 	/* To prevent "spamming" of onRmsChanged: */
 	public long lastActionTime = 0; // the time of the last message sent.
-	private static int MIN_ACTION_TIME = 150; // the minimum amount of time (ms)
+	private static int MIN_ACTION_TIME = 200; // the minimum amount of time (ms)
 												// that must pass before another
 												// voice rms update is sent
 	
@@ -482,7 +482,8 @@ public class SpeechRecognizerService extends Service {
 		
 		if (rms > MINIMUM_RMS_REFRESH && state == STATE_ACTIVE)
 			lastRefreshTime = curActionTime;
-		if (curActionTime - lastRefreshTime > COMMANDS_TIMEOUT_DURATION){
+		if (curActionTime - lastRefreshTime > COMMANDS_TIMEOUT_DURATION &&
+				state != STATE_INACTIVE){
 			sendState(STATE_INACTIVE);
 		}
 		lastActionTime = curActionTime;
