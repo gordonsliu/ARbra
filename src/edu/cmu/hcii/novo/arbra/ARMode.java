@@ -33,6 +33,7 @@ public class ARMode extends ARViewActivity {
 	
 	private static final String idMovie = "identify.3g2";
 	private static final String swabMovie = "swab.3g2";
+	private static final int numSwabSites = 3;
 	
 	
 	@Override
@@ -42,8 +43,8 @@ public class ARMode extends ARViewActivity {
 		mCallbackHandler = new MetaioSDKCallbackHandler();
 		
 		idValues = new HashMap<String, String>();
-		idValues.put("Identify1", "100");
-		idValues.put("Identify2", "200");
+		idValues.put("Identify1", "50");
+		idValues.put("Identify2", "500");
 		
 		markerMovies = new HashMap<String, IGeometry>();
 	}
@@ -67,21 +68,23 @@ public class ARMode extends ARViewActivity {
 			//Log.i(TAG, "Tracking " + poses.size() + " objects");
 			for (int i = 0; i < poses.size(); i++) {
 				TrackingValues pose = poses.get(i);
+				String name = pose.getCosName();
+				IGeometry movie = markerMovies.get(name);
 				
-				IGeometry movie = markerMovies.get(pose.getCosName());
-				movie.setCoordinateSystemID(pose.getCoordinateSystemID());
-				
-				if (pose.getState() == ETRACKING_STATE.ETS_FOUND) {										
-					movie.startMovieTexture(movie.getMovieTextureStatus().getLooping());
+				if (movie != null) {
+					movie.setCoordinateSystemID(pose.getCoordinateSystemID());
 					
-					if (idValues.containsKey(pose.getCosName())) {
-						Log.i(TAG, "SENDING VAlUE OF " + idValues.get(pose.getCosName()));
-						sendBroadcastMsg(idValues.get(pose.getCosName()));
+					if (pose.getState() == ETRACKING_STATE.ETS_FOUND) {										
+						movie.startMovieTexture(movie.getMovieTextureStatus().getLooping());
+						
+						if (idValues.containsKey(name)) {
+							sendBroadcastMsg(idValues.get(name));
+						}
+						
+					} else if (pose.getState() == ETRACKING_STATE.ETS_LOST) {
+						Log.i(TAG, "Pausing movie");
+						movie.pauseMovieTexture();
 					}
-					
-				} else if (pose.getState() == ETRACKING_STATE.ETS_LOST) {
-					Log.i(TAG, "Pausing movie");
-					movie.pauseMovieTexture();
 				}
 			}
 		}
@@ -111,12 +114,12 @@ public class ARMode extends ARViewActivity {
 			if (idPath != null && swabPath != null) {
 				
 				for (String key : idValues.keySet()) {
-					IGeometry mMoviePlane = metaioSDK.createGeometryFromMovie(idPath, true);
-					if (mMoviePlane != null) {
-						mMoviePlane.startMovieTexture();
-						
-						markerMovies.put(key, mMoviePlane);
+					IGeometry idGeo = metaioSDK.createGeometryFromMovie(idPath, true);
+					if (idGeo != null) {
 						MetaioDebug.log("Loaded geometry " + idPath);
+						
+						idGeo.startMovieTexture();
+						markerMovies.put(key, idGeo);
 					}
 					else {
 						MetaioDebug.log(Log.ERROR, "Error loading geometry: " + idPath);
@@ -124,13 +127,16 @@ public class ARMode extends ARViewActivity {
 				}
 				
 				
-				for (int i = 0; i < 2; i++) {
-					IGeometry mMoviePlane = metaioSDK.createGeometryFromMovie(swabPath, true);
-					if (mMoviePlane != null) {
-						mMoviePlane.startMovieTexture(true);
-						
-						markerMovies.put("Swab" + (i+1), mMoviePlane);
+				for (int i = 0; i < numSwabSites; i++) {
+					IGeometry swabGeo = metaioSDK.createGeometryFromMovie(swabPath, true);
+					if (swabGeo != null) {
 						MetaioDebug.log("Loaded geometry " + swabPath);
+						
+						//mMoviePlane.setScale(1.5f);
+						//mMoviePlane.setTranslation(new Vector3d(2f, 2f, 2f));
+						
+						swabGeo.startMovieTexture(true);	
+						markerMovies.put("Swab" + (i+1), swabGeo);
 					}
 					else {
 						MetaioDebug.log(Log.ERROR, "Error loading geometry: " + swabPath);
@@ -142,6 +148,8 @@ public class ARMode extends ARViewActivity {
 		catch (Exception e)	{
 			Log.e(TAG, "Error loading contents", e);
 		}
+		
+		Log.i(TAG, markerMovies.toString());
 	}
 	
   
@@ -233,7 +241,8 @@ public class ARMode extends ARViewActivity {
 	 * Sends a broadcast message to be read by other classes
 	 * @param msg the string to be sent
 	 */
-	private void sendBroadcastMsg(String msg){
+	private void sendBroadcastMsg(String msg) {
+		Log.v(TAG, "Sending broadcast message: " + msg);
         Intent intent = new Intent("ar");
         intent.putExtra("type", MSG_TYPE_AR_READ);
         intent.putExtra("msg", msg);

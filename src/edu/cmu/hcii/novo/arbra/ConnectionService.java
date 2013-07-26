@@ -155,7 +155,8 @@ public class ConnectionService extends Service {
 				}
 			} else if (intent.getAction().equals("ar")) {
 				if (b.getString("type").equals(ARMode.MSG_TYPE_AR_READ)) {
-					try {					
+					try {
+						Log.d(TAG, "Sending input to headset: " + b.getString("msg"));
 						sendMoverioMsg(b.getString("msg"), b.getString("type"));
 					} catch (JSONException e) {
 						e.printStackTrace();
