@@ -139,7 +139,7 @@ public class ConnectionService extends Service {
 	private class DataUpdateReceiver extends BroadcastReceiver {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			Log.v(TAG, "on receive");
+			//Log.v(TAG, "on receive");
 			Bundle b = intent.getExtras();
 			
 			if (intent.getAction().equals("speech")){
@@ -149,6 +149,14 @@ public class ConnectionService extends Service {
 					b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_AUDIO_STATE)){
 					try {					
 						sendMoverioMsg(b.getString("msg"),b.getString("type"));
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+			} else if (intent.getAction().equals("ar")) {
+				if (b.getString("type").equals(ARMode.MSG_TYPE_AR_READ)) {
+					try {					
+						sendMoverioMsg(b.getString("msg"), b.getString("type"));
 					} catch (JSONException e) {
 						e.printStackTrace();
 					}

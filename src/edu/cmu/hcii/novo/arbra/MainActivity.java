@@ -1,5 +1,6 @@
 package edu.cmu.hcii.novo.arbra;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -13,6 +14,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.media.AudioManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.speech.SpeechRecognizer;
@@ -27,6 +29,10 @@ import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import com.metaio.sdk.MetaioDebug;
+import com.metaio.tools.io.AssetsManager;
+
 import edu.cmu.hcii.novo.arbra.AudioFeedbackView.AudioFeedbackThread;
 
 public class MainActivity extends Activity {
@@ -63,6 +69,11 @@ public class MainActivity extends Activity {
 	/** For muting Jellybean's audio feedback for SpeechRecognizer **/
 	private AudioManager mAudioManager;
 	
+	/**
+	 * Task that will extract all the assets
+	 */
+	private AssetsExtracter extractor;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -98,7 +109,10 @@ public class MainActivity extends Activity {
 		mAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
 		//mAudioManager.setStreamMute(AudioManager.STREAM_SYSTEM, true);
 		mAudioManager.setStreamSolo(AudioManager.STREAM_NOTIFICATION, true);
-
+		
+		// extract all the assets
+		extractor = new AssetsExtracter();
+		extractor.execute(0);
 	}
 
 	private void initSpeechButtons() {
@@ -254,7 +268,7 @@ public class MainActivity extends Activity {
 		else if (item.getTitle().equals("AR Mode")){
 			//showGUI = false;
 			//hideGUI();
-			startActivity(new Intent(this, Tutorial1.class));
+			startActivity(new Intent(this, ARMode.class));
 		}else if (item.getTitle().equals("Trainer Mode")){
 			//showGUI = true;
 			//showGUI();
@@ -494,5 +508,34 @@ public class MainActivity extends Activity {
 		textView.setText(str);
 	}
 	
+	/**
+	 * This task extracts all the assets to an external or internal location
+	 * to make them accessible to metaio SDK
+	 */
+	private class AssetsExtracter extends AsyncTask<Integer, Integer, Boolean>
+	{
 
+		@Override
+		protected void onPreExecute() 
+		{
+		}
+		
+		@Override
+		protected Boolean doInBackground(Integer... params) 
+		{
+			try 
+			{
+				// TODO: Extract all assets and override existing files
+				AssetsManager.extractAllAssets(getApplicationContext(), true);
+			} 
+			catch (IOException e) 
+			{
+				MetaioDebug.log(Log.ERROR, "Error extracting assets: "+e.getMessage());
+				MetaioDebug.printStackTrace(Log.ERROR, e);
+				return false;
+			}
+			
+			return true;
+		}		
+	}
 }
