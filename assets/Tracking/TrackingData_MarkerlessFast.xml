@@ -99,7 +99,6 @@
                 <SensorCosID>Metaioman</SensorCosID>
                 <Parameters>
                     <ReferenceImage WidthMM="100" HeightMM="100">metaioman.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
                 </Parameters>
             </SensorCOS>
             
@@ -107,7 +106,6 @@
                 <SensorCosID>IDMarker1</SensorCosID>
                 <Parameters>
                     <ReferenceImage WidthMM="50" HeightMM="50">idmarker_1.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
                 </Parameters>
             </SensorCOS>
             
@@ -115,31 +113,27 @@
                 <SensorCosID>IDMarker2</SensorCosID>
                 <Parameters>
                     <ReferenceImage WidthMM="50" HeightMM="50">idmarker_2.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
                 </Parameters>
             </SensorCOS>
             
 			<SensorCOS>
                 <SensorCosID>SwabMarker1</SensorCosID>
                 <Parameters>
-                    <ReferenceImage WidthMM="75" HeightMM="25">3689.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
+                    <ReferenceImage WidthMM="106" HeightMM="31">3689.png</ReferenceImage>
                 </Parameters>
             </SensorCOS>
             
 			<SensorCOS>
                 <SensorCosID>SwabMarker2</SensorCosID>
                 <Parameters>
-                    <ReferenceImage WidthMM="75" HeightMM="25">8224.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
+                    <ReferenceImage WidthMM="106" HeightMM="31">8224.png</ReferenceImage>
                 </Parameters>
             </SensorCOS>
             
 			<SensorCOS>
                 <SensorCosID>SwabMarker3</SensorCosID>
                 <Parameters>
-                    <ReferenceImage WidthMM="75" HeightMM="25">9553.png</ReferenceImage>
-                    <SimilarityThreshold>0.8</SimilarityThreshold>
+                    <ReferenceImage WidthMM="106" HeightMM="25">9553.png</ReferenceImage>
                 </Parameters>
             </SensorCOS>
             

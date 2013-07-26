@@ -114,6 +114,7 @@ public class ConnectionService extends Service {
 			dataUpdateReceiver = new DataUpdateReceiver();
 		IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction("speech");
+		intentFilter.addAction("ar");
 		registerReceiver(dataUpdateReceiver, intentFilter);
     }
 
@@ -141,7 +142,7 @@ public class ConnectionService extends Service {
 		public void onReceive(Context context, Intent intent) {
 			//Log.v(TAG, "on receive");
 			Bundle b = intent.getExtras();
-			
+						
 			if (intent.getAction().equals("speech")){
 				if (b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_COMMAND) || 
 					b.getString("type").equals(SpeechRecognizerService.MSG_TYPE_AUDIO_BUSY) ||

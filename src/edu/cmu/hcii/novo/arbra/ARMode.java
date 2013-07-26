@@ -19,6 +19,7 @@ import com.metaio.sdk.jni.IVisualSearchCallback;
 import com.metaio.sdk.jni.ImageStruct;
 import com.metaio.sdk.jni.TrackingValues;
 import com.metaio.sdk.jni.TrackingValuesVector;
+import com.metaio.sdk.jni.Vector3d;
 import com.metaio.sdk.jni.VisualSearchResponseVector;
 import com.metaio.tools.io.AssetsManager;
 
@@ -76,7 +77,7 @@ public class ARMode extends ARViewActivity {
 					
 					if (pose.getState() == ETRACKING_STATE.ETS_FOUND) {										
 						movie.startMovieTexture(movie.getMovieTextureStatus().getLooping());
-						
+												
 						if (idValues.containsKey(name)) {
 							sendBroadcastMsg(idValues.get(name));
 						}
@@ -133,7 +134,7 @@ public class ARMode extends ARViewActivity {
 						MetaioDebug.log("Loaded geometry " + swabPath);
 						
 						//mMoviePlane.setScale(1.5f);
-						//mMoviePlane.setTranslation(new Vector3d(2f, 2f, 2f));
+						swabGeo.setTranslation(new Vector3d(0f, -75f, 0f));
 						
 						swabGeo.startMovieTexture(true);	
 						markerMovies.put("Swab" + (i+1), swabGeo);
@@ -242,7 +243,7 @@ public class ARMode extends ARViewActivity {
 	 * @param msg the string to be sent
 	 */
 	private void sendBroadcastMsg(String msg) {
-		Log.v(TAG, "Sending broadcast message: " + msg);
+		Log.d(TAG, "Sending broadcast message: " + msg);
         Intent intent = new Intent("ar");
         intent.putExtra("type", MSG_TYPE_AR_READ);
         intent.putExtra("msg", msg);

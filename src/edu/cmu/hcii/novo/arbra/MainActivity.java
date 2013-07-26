@@ -427,7 +427,7 @@ public class MainActivity extends Activity {
 	private class DataUpdateReceiver extends BroadcastReceiver {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			Log.v(TAG, "on receive");
+			//Log.v(TAG, "on receive");
 			Bundle b = intent.getExtras();
 
 			if (intent.getAction().equals("connection")) {

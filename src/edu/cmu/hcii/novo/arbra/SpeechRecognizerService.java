@@ -300,7 +300,7 @@ public class SpeechRecognizerService extends Service {
 
 		@Override
 		public void onRmsChanged(float noise) {
-			Log.v(TAG, "onRmsChanged: " + noise);
+			//Log.v(TAG, "onRmsChanged: " + noise);
 			refreshTimers();
 			
 			sendAudioLevel(noise);
