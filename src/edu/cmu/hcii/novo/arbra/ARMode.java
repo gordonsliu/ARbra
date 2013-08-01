@@ -23,14 +23,21 @@ import com.metaio.sdk.jni.Vector3d;
 import com.metaio.sdk.jni.VisualSearchResponseVector;
 import com.metaio.tools.io.AssetsManager;
 
+/**
+ * This activity uses the Metaio SDK for our augmented reality demos of
+ * data recording and overlays that assist with manual tasks.
+ * 	 
+ * @author Chris
+ *
+ */
 public class ARMode extends ARViewActivity {
 	private static final String TAG = "RecordData";
 	
-	public static final String MSG_TYPE_AR_READ = "readObject";
+	public static final String MSG_TYPE_AR_READ = "readObject"; // message type of message sent to ConnectionService and connected device
 	
-	private MetaioSDKCallbackHandler mCallbackHandler;
-	private Map<String, String> idValues;
-	private Map<String, IGeometry> markerMovies;
+	private MetaioSDKCallbackHandler mCallbackHandler; 
+	private Map<String, String> idValues; // map of id's and data values 
+	private Map<String, IGeometry> markerMovies; 
 	
 	private static final String idMovie = "identify.3g2";
 	private static final String swabMovie = "swab.3g2";
@@ -57,7 +64,9 @@ public class ARMode extends ARViewActivity {
 		return R.layout.template; 
 	}
 	
-	
+	/**
+	 * Draws the AR visuals
+	 */
 	@Override
 	public void onDrawFrame() {
 		super.onDrawFrame();

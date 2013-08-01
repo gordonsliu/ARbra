@@ -328,6 +328,16 @@ public class ConnectionService extends Service {
 		// to prevent "spamming" of control panel commands
 
 		sendMsg(j.toString());
+		
+		sendBroadcastToPEER(j.toString());
+		
 		return true;
+	}
+	
+	
+	private void sendBroadcastToPEER(String jsonMsg){
+        Intent intent = new Intent("PEER_speech");
+        intent.putExtra("msg", jsonMsg);
+        sendBroadcast(intent);
 	}
 }
