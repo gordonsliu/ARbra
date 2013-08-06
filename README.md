@@ -1,6 +1,6 @@
 #ARbra
 
-The tablet portion of [PEER](http://www.github.com/cmuellerrr/PEER
+The tablet portion of [PEER](http://www.github.com/cmuellerrr/PEER)
 
 
 ## Background
